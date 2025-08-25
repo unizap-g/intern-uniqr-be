@@ -4,7 +4,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { createClient } from 'redis';
 import cors from 'cors';
-
+// import userRoute from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import setupSwagger from './swagger.js';
 
@@ -27,7 +27,12 @@ const startServer = async () => {
     console.log('✅ MongoDB Atlas Connected Successfully.');
 
     app.use('/api/auth', authRoutes);
+    // app.use('/api/user', userRoute);
 
+        // Health checker API
+    app.get('/api/health', (req, res) => {
+      res.status(200).json({ status: 'ok', message: 'Server is healthy' });
+    });
     // Swagger docs
     setupSwagger(app);
 
