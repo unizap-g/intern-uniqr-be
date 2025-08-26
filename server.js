@@ -11,7 +11,7 @@ import setupSwagger from './swagger.js';
 import { createRateLimiters } from './middleware/rateLimiter.js';
 
 const app = express();
-app.use(cors());
+app.use(cors("https://intern-uniqr-fe.onrender.com/"));
 app.use(express.json());
 
 const startServer = async () => {
@@ -71,6 +71,7 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
+
     process.exit(1);
   }
 };
