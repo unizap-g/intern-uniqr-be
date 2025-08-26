@@ -1,71 +1,44 @@
 // routes/authRoutes.js
+
 import express from 'express';
 import { sendOtp, verifyOtpAndSignUp } from '../controllers/authController.js';
 
+// Accept otpRateLimiter as a parameter
+export function createAuthRoutes(otpRateLimiter) {
+  const router = express.Router();
+  import('../middleware/authMiddleware.js').then(({ authenticate }) => {
+    // Example protected route
+    router.get('/protected', authenticate, (req, res) => {
+      res.status(200).json({ success: true, message: 'You are authenticated!', userId: req.user.id });
+    });
+  });
 
-const router = express.Router();
+  // =================================================================
+  // Authentication Routes
+  // =================================================================
 
-/**
- * @swagger
- * /auth/send-otp:
- *   post:
- *     summary: Send OTP to a mobile number
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - mobileNumber
- *             properties:
- *               mobileNumber:
- *                 type: string
- *                 example: '1234567890'
- *     responses:
- *       200:
- *         description: OTP sent successfully
- *       400:
- *         description: Mobile number is required
- *       500:
- *         description: Failed to send OTP
- */
-router.post('/send-otp', sendOtp);
+  /**
+   * @route   POST /api/auth/send-otp
+   * @desc    Initiates the sign-up or sign-in process by sending an OTP.
+   * @access  Public
+   * @middleware otpRateLimiter - Applies a strict rate limit to this expensive endpoint.
+   */
+  router.post('/send-otp', otpRateLimiter, sendOtp);
 
-/**
- * @swagger
- * /auth/verify-otp:
- *   post:
- *     summary: Verify OTP and sign up or log in
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - mobileNumber
- *               - otp
- *             properties:
- *               mobileNumber:
- *                 type: string
- *                 example: '1234567890'
- *               otp:
- *                 type: string
- *                 example: '123456'
- *     responses:
- *       201:
- *         description: Authentication successful
- *       400:
- *         description: Mobile number and OTP are required or OTP is invalid
- *       500:
- *         description: Internal server error
- */
-router.post('/verify-otp', verifyOtpAndSignUp);
+  /**
+   * @route   POST /api/auth/verify-otp
+   * @desc    Completes authentication by verifying the OTP and issuing tokens.
+   * @access  Public
+   * @middleware generalRateLimiter - Protected by the global limiter in server.js.
+   */
+  router.post('/verify-otp', verifyOtpAndSignUp);
 
-// In a full application, you would also have a route to refresh the access token
-// router.post('/refresh-token', refreshTokenController);
 
-export default router;
+  // Refresh token endpoint
+  import('../controllers/tokenController.js').then(({ refreshAccessToken }) => {
+    router.post('/refresh-token', refreshAccessToken);
+  });
+
+  // Export the router for use in server.js
+  return router;
+}

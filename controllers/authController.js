@@ -9,137 +9,163 @@ import {
   generateRefreshToken,
 } from "../utils/tokenUtils.js";
 
-// =================================================================
-// UPDATED sendOtp function - The user existence check has been REMOVED from here.
-// Its only job now is to send an OTP.
-// =================================================================
+// --- UPDATED: Stricter validation function for exactly 10 digits ---
+const validateMobileNumber = (mobile) => {
+  // Regex to check if the string contains exactly 10 digits.
+  const mobileRegex = /^\d{10}$/;
+  return mobileRegex.test(mobile);
+};
+
 export const sendOtp = async (req, res) => {
   try {
-    const { mobileNumber } = req.body;
-    if (!mobileNumber) {
+    // Only allow countryCode and mobileNumber in the request body
+    const allowedFields = ["countryCode", "mobileNumber"];
+    const extraFields = Object.keys(req.body).filter(
+      (key) => !allowedFields.includes(key)
+    );
+    if (extraFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Only countryCode and mobileNumber are allowed. Extra fields: ${extraFields.join(
+          ", "
+        )}`,
+      });
+    }
+    const { countryCode, mobileNumber } = req.body;
+    if (!countryCode || !mobileNumber) {
       return res
         .status(400)
-        .json({ success: false, message: "Mobile number is required." });
+        .json({
+          success: false,
+          message: "Country code and mobile number are required.",
+        });
     }
 
-    // The function is now simpler. It just generates, sends, and saves the OTP.
+    // --- UPDATED: Enforce 10-digit rule at the API entry point ---
+    if (!validateMobileNumber(mobileNumber)) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Mobile number must be in digits and exactly 10 digits.",
+        });
+    }
+
+    const fullMobileForSms = `${countryCode}${mobileNumber}`;
+    // Generate a 6-digit numeric OTP (no alphabets, no special chars, only digits)
     const otp = otpGenerator.generate(6, {
-      upperCaseAlphabets: false,
+      digits: true,
       lowerCaseAlphabets: false,
+      upperCaseAlphabets: false,
       specialChars: false,
     });
-
-    const smsSent = await sendOtpSms(mobileNumber, otp);
+    const smsSent = await sendOtpSms(fullMobileForSms, otp);
     if (!smsSent) {
       return res
         .status(500)
         .json({ success: false, message: "Failed to send OTP." });
     }
 
-    // The robust OTP creation from your provided code is kept.
-    try {
-      const newOtp = new Otp({ mobileNumber, otp });
-      await newOtp.save();
-      console.log(`✅ OTP for ${mobileNumber} successfully stored in MongoDB.`);
-    } catch (dbError) {
-      console.error('❌ MongoDB Error: Failed to store OTP.', dbError);
-      return res.status(500).json({
-        success: false,
-        message: 'A database error occurred while trying to save the OTP.'
-      });
-    }
-    
-    // The response is now always the same, simple success message.
-    // The `userExists` flag is no longer sent from here.
+    // Store OTP as string to preserve leading zeros
+    await Otp.create({ mobileNumber: fullMobileForSms, otp: otp });
+
+    // The query now uses the mobileNumber string directly.
+    const user = await User.findOne({ countryCode, mobileNumber });
+
     res.status(200).json({
       success: true,
-      message: "OTP has been sent successfully.",
+      message: user
+        ? "Welcome back! OTP sent for login."
+        : "OTP sent for new account verification.",
+      userExists: !!user,
     });
-
   } catch (error) {
     res
       .status(500)
-      .json({ success: false, message: "An internal server error occurred." });
+      .json({
+        success: false,
+        message: "An internal server error occurred.",
+        error: error.message,
+      });
   }
 };
 
-// =================================================================
-// UPDATED verifyOtpAndSignUp function - This function now handles the user
-// existence check and provides a specific response for sign-up vs. sign-in.
-// =================================================================
 export const verifyOtpAndSignUp = async (req, res) => {
   try {
-    const { mobileNumber, otp } = req.body;
-    if (!mobileNumber || !otp) {
+    // Only allow countryCode, mobileNumber, and otp in the request body
+    const allowedFields = ["countryCode", "mobileNumber", "otp"];
+    const extraFields = Object.keys(req.body).filter(
+      (key) => !allowedFields.includes(key)
+    );
+    if (extraFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Only countryCode, mobileNumber, and otp are allowed. Extra fields: ${extraFields.join(
+          ", "
+        )}`,
+      });
+    }
+    const { countryCode, mobileNumber, otp } = req.body;
+    if (!countryCode || !mobileNumber || !otp) {
       return res
         .status(400)
         .json({
           success: false,
-          message: "Mobile number and OTP are required.",
+          message: "Country code, mobile number, and OTP are required.",
         });
     }
 
-    const otpRecord = await Otp.findOne({ mobileNumber }).sort({
-      createdAt: -1,
-    });
+    // --- UPDATED: Enforce 10-digit rule at the API entry point ---
+    if (!validateMobileNumber(mobileNumber)) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Mobile number must be exactly 10 digits.",
+        });
+    }
+
+    const fullMobileForSms = `${countryCode}${mobileNumber}`;
+    const otpRecord = await Otp.findOne({
+      mobileNumber: fullMobileForSms,
+    }).sort({ createdAt: -1 });
+    console.log(fullMobileForSms);
     if (!otpRecord) {
+      console.log(otpRecord);
       return res
         .status(400)
         .json({ success: false, message: "OTP has expired or is invalid." });
     }
 
-    const isMatch = await bcrypt.compare(otp, otpRecord.otp);
-    if (!isMatch) {
-      return res
-        .status(400)
-        .json({ success: false, message: "The OTP you entered is incorrect." });
+    // Compare OTPs as strings to preserve leading zeros
+    if (Number(otp) !== Number(otpRecord.otp)) {
+      return res.status(400).json({ success: false, message: "The OTP you entered is incorrect." });
     }
 
-    // --- LOGIC HAS BEEN SHIFTED TO HERE ---
-    // 1. Find the user.
-    let user = await User.findOne({ mobileNumber });
-    let isNewUser = false; // Flag to determine the response message and action.
-
-    // 2. If user doesn't exist, create them and set the flag.
+    // Find or Create user using the mobileNumber string.
+    let user = await User.findOne({ countryCode, mobileNumber });
     if (!user) {
-      user = await User.create({ mobileNumber });
-      isNewUser = true;
+      user = await User.create({ countryCode, mobileNumber });
     }
-    // --- END OF SHIFTED LOGIC ---
 
+    // Generate access and refresh tokens
+    const accessToken = generateAccessToken(user._id); // Short-lived (e.g., 15m-1h)
+    const refreshToken = generateRefreshToken(user._id); // Long-lived (e.g., 7d)
 
-    // Generate both tokens
-    const accessToken = generateAccessToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
-
-    // Store the REFRESH token in Redis
+    // Store refresh token in Redis for session management
     const redis = req.app.get("redis");
-    await redis.set(`refreshToken:${user._id}`, refreshToken, { EX: 604800 });
+    await redis.set(`refreshToken:${user._id}`, refreshToken, { EX: 604800 }); // 7 days
 
-    // Server-side verification that the token was stored (good practice)
-    const storedToken = await redis.get(`refreshToken:${user._id}`);
-    if (!storedToken) {
-      return res.status(500).json({
-        success: false,
-        message: "Critical Error: Failed to store refresh token in Redis.",
-      });
-    }
+    // Remove all OTPs for this number after successful verification
+    await Otp.deleteMany({ mobileNumber: fullMobileForSms });
 
-    // Clean up the used OTP
-    await Otp.deleteMany({ mobileNumber });
-
-    // 3. Customize the final response message based on whether the user was new.
-    const message = isNewUser
-      ? 'Signup successful! Welcome.'
-      : 'Login successful! Welcome back.';
-
+    // Return tokens and userId
     res.status(201).json({
       success: true,
-      message: message, // Use the new dynamic message
+      message: "Authentication successful!",
       accessToken,
       refreshToken,
       userId: user._id,
-      isNewUser: isNewUser // Send this useful flag to the frontend
     });
   } catch (error) {
     res

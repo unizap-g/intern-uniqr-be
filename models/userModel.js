@@ -2,50 +2,38 @@
 import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
-  // --- Core Authentication Field ---
-  mobileNumber: {
-    type: String,
-    required: [true, 'Mobile number is required.'],
-    unique: true,
+  countryCode: {
+    type: Number,
+    required: [true, 'Country code is required.'],
+    enum: ['91', '+1'],
     trim: true,
-    index: true,
-  },
 
-  // --- NEW PROFILE FIELDS ---
-  // These fields are not required at signup and can be added later.
-  fullName: {
-    type: String,
+  },
+  // --- CRITICAL CHANGE: Stored as a String to enforce exact length ---
+  mobileNumber: {
+    type: Number,
+    required: [true, 'Mobile number is required.'],
     trim: true,
-    default: '' // Defaults to an empty string
-  },
-  email: {
-    type: String,
-    trim: true,
-    lowercase: true,
-    unique: true,
-    
-    // 'sparse: true' is essential for optional unique fields.
-    // It allows multiple documents to have a null/empty email,
-    // but ensures that any email that IS provided is unique.
-    sparse: true,
-    // Basic regex for email format validation
-    match: [/^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/, 'Please provide a valid email'],
-  },
-  dateOfBirth: {
-    type: Date, // Stores the date of birth
-    default: Date.now ,// Defaults to an empty string
-  },
-  gender: {
-    type: String,
-    // 'enum' restricts the possible values for this field
-    enum: ['Male', 'Female', 'Other', 'Prefer not to say'],
-    default: 'Other', // Defaults to an empty string
+    // Validation: Ensures the string contains EXACTLY 10 digits (0-9).
+    validate: {
+      validator: function(v) {
+        return /^\d{10}$/.test(v);
+      },
+      message: props => `${props.value} is not a valid 10-digit mobile number!`
+    },
   },
   
+  // --- Profile Fields ---
+  fullName: { type: String, trim: true, default: '' },
+  email: { type: String, trim: true, lowercase: true, unique: true, sparse: true },
+  dateOfBirth: { type: Date },
+  gender: { type: String, enum: ['Male', 'Female', 'Other', 'Prefer not to say'] },
+  
 }, {
-  timestamps: true // Automatically adds `createdAt` and `updatedAt` fields
+  timestamps: true
 });
 
-const User = mongoose.model('User', userSchema);
+userSchema.index({ countryCode: 1, mobileNumber: 1 }, { unique: true });
 
+const User = mongoose.model('User', userSchema);
 export default User;
