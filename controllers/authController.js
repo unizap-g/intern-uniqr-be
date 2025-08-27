@@ -32,10 +32,9 @@ export const sendOtp = async (req, res) => {
         )}`,
       });
     }
-<<<<<<< HEAD
-  const { countryCode, mobileNumber } = req.body;
-=======
->>>>>>> 685a6e7df45b7cae1dffdeab3d66a21f25990569
+
+
+
     if (!countryCode || !mobileNumber) {
       return res
         .status(400)
@@ -128,10 +127,8 @@ export const verifyOtpAndSignUp = async (req, res) => {
         )}`,
       });
     }
-<<<<<<< HEAD
-  const { countryCode, mobileNumber, otp } = req.body;
-=======
->>>>>>> 685a6e7df45b7cae1dffdeab3d66a21f25990569
+
+
     if (!countryCode || !mobileNumber || !otp) {
       return res
         .status(400)

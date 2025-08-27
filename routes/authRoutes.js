@@ -47,8 +47,6 @@ export function createAuthRoutes(otpRateLimiter) {
    */
   router.post('/verify-otp', verifyOtpAndSignUp);
 
-<<<<<<< HEAD
-=======
 
   // Refresh token endpoint
   import('../controllers/tokenController.js').then(({ refreshAccessToken, logout }) => {
@@ -62,7 +60,6 @@ export function createAuthRoutes(otpRateLimiter) {
     router.post('/logout', logout);
   });
 
->>>>>>> 685a6e7df45b7cae1dffdeab3d66a21f25990569
   // Export the router for use in server.js
   return router;
 }
