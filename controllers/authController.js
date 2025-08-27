@@ -31,7 +31,7 @@ export const sendOtp = async (req, res) => {
         )}`,
       });
     }
-    const { countryCode, mobileNumber } = req.body;
+  const { countryCode, mobileNumber } = req.body;
     if (!countryCode || !mobileNumber) {
       return res
         .status(400)
@@ -51,7 +51,7 @@ export const sendOtp = async (req, res) => {
         });
     }
 
-    const fullMobileForSms = `${countryCode}${mobileNumber}`;
+  const fullMobileForSms = `${countryCode}${mobileNumber}`;
     // Generate a 6-digit numeric OTP (no alphabets, no special chars, only digits)
     const otp = otpGenerator.generate(6, {
       digits: true,
@@ -105,7 +105,7 @@ export const verifyOtpAndSignUp = async (req, res) => {
         )}`,
       });
     }
-    const { countryCode, mobileNumber, otp } = req.body;
+  const { countryCode, mobileNumber, otp } = req.body;
     if (!countryCode || !mobileNumber || !otp) {
       return res
         .status(400)
@@ -125,7 +125,7 @@ export const verifyOtpAndSignUp = async (req, res) => {
         });
     }
 
-    const fullMobileForSms = `${countryCode}${mobileNumber}`;
+  const fullMobileForSms = `${countryCode}${mobileNumber}`;
     const otpRecord = await Otp.findOne({
       mobileNumber: fullMobileForSms,
     }).sort({ createdAt: -1 });
@@ -154,8 +154,8 @@ export const verifyOtpAndSignUp = async (req, res) => {
 
     // Store refresh token in Redis for session management
     const redis = req.app.get("redis");
-    await redis.set(`refreshToken:${user._id}`, refreshToken, { EX: 604800 }); // 7 days
-
+  const tempres=await redis.set(`refreshToken:${user._id}`, refreshToken, { EX: 604800 }); // 7 days
+    console.log(tempres);
     // Remove all OTPs for this number after successful verification
     await Otp.deleteMany({ mobileNumber: fullMobileForSms });
 
@@ -175,5 +175,30 @@ export const verifyOtpAndSignUp = async (req, res) => {
         message: "An internal server error occurred.",
         error: error.message,
       });
+  }
+};
+
+export const signOut = async (req, res) => {
+try {
+    const userId = req.user.id; // From authenticate middleware
+    const redis = req.app.get("redis");
+    const redisKey = `refreshToken:${userId}`;
+    const deletedCount = await redis.del(redisKey);
+    if (deletedCount === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "Logout successful. Session was already expired or not found."
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful. Refresh token deleted."
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Logout failed.",
+      error: error.message
+    });
   }
 };

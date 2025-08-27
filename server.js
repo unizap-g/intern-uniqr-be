@@ -14,12 +14,14 @@ const app = express();
 app.use(cors({ origin: process.env.CORS_URL }));
 app.use(express.json());
 
+
+console.log("helol",process.env.REDIS_URL);
 const startServer = async () => {
+
   try {
     // UPDATED to use the cleaner URI format
     const redisClient = createClient({
-      url: process.env.REDIS_URL
-    });
+      url: process.env.REDIS_URL    });
     redisClient.on('error', err => console.error('❌ Redis Client Error:', err));
     await redisClient.connect();
     console.log('✅ Redis Connected Successfully.');

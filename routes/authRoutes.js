@@ -1,16 +1,30 @@
 // routes/authRoutes.js
 
 import express from 'express';
-import { sendOtp, verifyOtpAndSignUp } from '../controllers/authController.js';
+import { sendOtp, verifyOtpAndSignUp, signOut } from '../controllers/authController.js';
 
 // Accept otpRateLimiter as a parameter
 export function createAuthRoutes(otpRateLimiter) {
   const router = express.Router();
+  
+  // Import middleware and controllers dynamically
   import('../middleware/authMiddleware.js').then(({ authenticate }) => {
     // Example protected route
     router.get('/protected', authenticate, (req, res) => {
       res.status(200).json({ success: true, message: 'You are authenticated!', userId: req.user.id });
     });
+
+    /**
+     * @route   POST /api/auth/signout
+     * @desc    Signs out the user by invalidating their session and removing refresh token from Redis.
+     * @access  Private - Requires valid JWT access token
+     * @middleware authenticate - Validates the user's access token
+     */
+    router.post('/signout', authenticate, signOut);
+  });
+
+  import('../controllers/tokenController.js').then(({ refreshAccessToken }) => {
+    router.post('/refresh-token', refreshAccessToken);
   });
 
   // =================================================================
@@ -33,12 +47,6 @@ export function createAuthRoutes(otpRateLimiter) {
    */
   router.post('/verify-otp', verifyOtpAndSignUp);
 
-
-  // Refresh token endpoint
-  import('../controllers/tokenController.js').then(({ refreshAccessToken }) => {
-    router.post('/refresh-token', refreshAccessToken);
-  });
-
   // Export the router for use in server.js
-  return router;
+  return router;
 }
