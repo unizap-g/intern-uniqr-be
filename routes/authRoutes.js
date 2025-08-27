@@ -35,8 +35,15 @@ export function createAuthRoutes(otpRateLimiter) {
 
 
   // Refresh token endpoint
-  import('../controllers/tokenController.js').then(({ refreshAccessToken }) => {
+  import('../controllers/tokenController.js').then(({ refreshAccessToken, logout }) => {
     router.post('/refresh-token', refreshAccessToken);
+    
+    /**
+     * @route   POST /api/auth/logout
+     * @desc    Logs out user by invalidating refresh token from Redis
+     * @access  Public (requires refresh token in body)
+     */
+    router.post('/logout', logout);
   });
 
   // Export the router for use in server.js

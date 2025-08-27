@@ -1,36 +1,32 @@
 import express from 'express';
 import { authenticate } from '../middleware/authMiddleware.js';
+import { getUserProfile, getUserById, signOut, updateUserProfile } from '../controllers/userController.js';
 
 const router = express.Router();
 
-// Example: Authenticated user profile endpoint
+// =================================================================
+// User Routes - All routes require authentication
+// =================================================================
 
-import User from '../models/userModel.js';
+/**
+ * @route   GET /api/user/profile
+ * @desc    Get current authenticated user's profile
+ * @access  Private (requires valid access token)
+ */
+router.get('/profile', authenticate, getUserProfile);
 
-// Authenticated user profile (current user)
-router.get('/profile', authenticate, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-__v -createdAt -updatedAt');
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found.' });
-    }
-    res.status(200).json({ success: true, message: 'Authenticated user profile', user });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch user profile.', error: error.message });
-  }
-});
-
-// Dynamic user route: get user by ID (protected)
-router.get('/:id', authenticate, async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select('-__v -createdAt -updatedAt');
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found.' });
-    }
-    res.status(200).json({ success: true, user });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch user.', error: error.message });
-  }
-});
+/**
+ * @route   GET /api/user/:id
+ * @desc    Get user by ID
+ * @access  Private (requires valid access token)
+ */
+router.get('/:id', authenticate, getUserById);
+router.put('/:id', authenticate, updateUserProfile);
+/**
+ * @route   POST /api/user/:id/signout
+ * @desc    Sign out specific user by invalidating their refresh token
+ * @access  Private (user can only sign out themselves)
+ */
+router.post('/:id/signout', authenticate, signOut);
 
 export default router;

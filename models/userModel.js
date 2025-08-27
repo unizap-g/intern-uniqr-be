@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
   countryCode: {
     type: Number,
     required: [true, 'Country code is required.'],
-    enum: ['91', '+1'],
+    enum: ['91','1','44','61'],
     trim: true,
 
   },
@@ -28,6 +28,8 @@ const userSchema = new mongoose.Schema({
   email: { type: String, trim: true, lowercase: true, unique: true, sparse: true },
   dateOfBirth: { type: Date },
   gender: { type: String, enum: ['Male', 'Female', 'Other', 'Prefer not to say'] },
+  profilePhoto: { type: String, default: '' },
+  password: { type: String, required: true },
   
 }, {
   timestamps: true

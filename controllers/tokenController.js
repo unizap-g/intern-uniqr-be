@@ -32,3 +32,34 @@ export const refreshAccessToken = async (req, res) => {
     res.status(500).json({ success: false, message: 'Could not refresh access token.', error: error.message });
   }
 };
+
+export const logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ success: false, message: 'Refresh token is required.' });
+    }
+    
+    let payload;
+    try {
+      payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    } catch (err) {
+      // Even if token is invalid/expired, respond with success to avoid leaking info
+      return res.status(200).json({ success: true, message: 'Logged out successfully.' });
+    }
+    
+    // Remove refresh token from Redis
+    const redis = req.app.get('redis');
+    const redisKey = `refreshToken:${payload.id}`;
+    await redis.del(redisKey);
+    
+    // Respond to client to clear tokens and redirect to login
+    res.status(200).json({ 
+      success: true, 
+      message: 'Logged out successfully.',
+      shouldRedirect: true 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Could not log out.', error: error.message });
+  }
+};

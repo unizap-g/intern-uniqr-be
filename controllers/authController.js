@@ -19,6 +19,7 @@ const validateMobileNumber = (mobile) => {
 export const sendOtp = async (req, res) => {
   try {
     // Only allow countryCode and mobileNumber in the request body
+    const { countryCode, mobileNumber } = req.body;
     const allowedFields = ["countryCode", "mobileNumber"];
     const extraFields = Object.keys(req.body).filter(
       (key) => !allowedFields.includes(key)
@@ -31,7 +32,6 @@ export const sendOtp = async (req, res) => {
         )}`,
       });
     }
-    const { countryCode, mobileNumber } = req.body;
     if (!countryCode || !mobileNumber) {
       return res
         .status(400)
@@ -41,8 +41,26 @@ export const sendOtp = async (req, res) => {
         });
     }
 
+    // Only allow country code 91
+    // if (countryCode !== "91") {
+    //   return res
+    //     .status(400)
+    //     .json({
+    //       success: false,
+    //       message: "Only country code 91 is supported.",
+    //     });
+    // }
+    const allowedCodes = User.schema.path('countryCode')?.enumValues || ['91'];
+    if (!allowedCodes.includes(countryCode)) {
+      return res.status(400).json({
+        success: false,
+        message: "Country code is wrong.",
+      });
+    }
+
     // --- UPDATED: Enforce 10-digit rule at the API entry point ---
-    if (!validateMobileNumber(mobileNumber)) {
+    // mobileNum = String(mobileNumber);
+    if (!validateMobileNumber(String(mobileNumber))) {
       return res
         .status(400)
         .json({
@@ -94,6 +112,7 @@ export const verifyOtpAndSignUp = async (req, res) => {
   try {
     // Only allow countryCode, mobileNumber, and otp in the request body
     const allowedFields = ["countryCode", "mobileNumber", "otp"];
+    const { countryCode, mobileNumber, otp } = req.body;
     const extraFields = Object.keys(req.body).filter(
       (key) => !allowedFields.includes(key)
     );
@@ -105,7 +124,6 @@ export const verifyOtpAndSignUp = async (req, res) => {
         )}`,
       });
     }
-    const { countryCode, mobileNumber, otp } = req.body;
     if (!countryCode || !mobileNumber || !otp) {
       return res
         .status(400)
@@ -113,6 +131,23 @@ export const verifyOtpAndSignUp = async (req, res) => {
           success: false,
           message: "Country code, mobile number, and OTP are required.",
         });
+    }
+
+    // Only allow country code 91
+    // if (countryCode !== "91") {
+    //   return res
+    //     .status(400)
+    //     .json({
+    //       success: false,
+    //       message: "Only country code 91 is supported.",
+    //     });
+    // }
+    const allowedCodes = User.schema.path('countryCode')?.enumValues || ['91'];
+    if (!allowedCodes.includes(countryCode)) {
+      return res.status(400).json({
+        success: false,
+        message: "Country code is wrong.",
+      });
     }
 
     // --- UPDATED: Enforce 10-digit rule at the API entry point ---
@@ -162,7 +197,7 @@ export const verifyOtpAndSignUp = async (req, res) => {
     // Return tokens and userId
     res.status(201).json({
       success: true,
-      message: "Authentication successful!",
+      message: "Wlcomeeee!",
       accessToken,
       refreshToken,
       userId: user._id,
