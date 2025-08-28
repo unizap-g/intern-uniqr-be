@@ -229,10 +229,10 @@ export const verifyOtpAndSignUp = async (req, res) => {
     });
   } catch (error) {
     res
-      .status(500)
+      .status(400)
       .json({
         success: false,
-        message: "An internal server error occurred.",
+        message: "Bad Request!.",
         error: error.message,
       });
   }
