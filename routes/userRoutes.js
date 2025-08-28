@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticate } from '../middleware/authMiddleware.js';
-
+import mongoose from 'mongoose';
 const router = express.Router();
 
 // Example: Authenticated user profile endpoint
@@ -77,7 +77,7 @@ router.patch('/profile', authenticate, async (req, res) => {
       }
     });
 
-    // Return validation errors if any
+
     if (errors.length > 0) {
       return res.status(400).json({ 
         success: false, 
@@ -87,7 +87,7 @@ router.patch('/profile', authenticate, async (req, res) => {
       });
     }
 
-    // Check if there's anything to update
+ 
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ 
         success: false, 
@@ -102,7 +102,7 @@ router.patch('/profile', authenticate, async (req, res) => {
       });
     }
 
-    // Check if email is already taken by another user
+
     if (updateData.email) {
       const existingUser = await User.findOne({ 
         email: updateData.email, 
@@ -116,7 +116,7 @@ router.patch('/profile', authenticate, async (req, res) => {
       }
     }
 
-    // Update user profile
+
     const user = await User.findByIdAndUpdate(
       req.user.id, 
       updateData, 
@@ -147,7 +147,7 @@ router.patch('/profile', authenticate, async (req, res) => {
     });
     
   } catch (error) {
-    // Handle MongoDB validation errors
+
     if (error.name === 'ValidationError') {
       const mongoErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({ 
@@ -157,7 +157,7 @@ router.patch('/profile', authenticate, async (req, res) => {
       });
     }
     
-    // Handle duplicate key error (email already exists)
+
     if (error.code === 11000) {
       return res.status(409).json({ 
         success: false, 
@@ -174,14 +174,23 @@ router.patch('/profile', authenticate, async (req, res) => {
   }
 });
 
-// Dynamic user route: get user by ID (protected)
-router.get('/:id', authenticate, async (req, res) => {
+
+router.get('/userdata', authenticate, async (req, res) => {
+  console.log("u are here means verified");
+  const userId = req.user.uId;
+  if (!userId) {
+    return res.status(400).json({ success: false, message: 'User ID is required.' });
+  }
+  const isValid = mongoose.Types.ObjectId.isValid(userId);
+  if(!isValid) {
+    return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+  }
   try {
-    const user = await User.findById(req.params.id).select('-__v -createdAt -updatedAt');
+    const user = await User.findById(userId).select('-__v -createdAt -updatedAt');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
-    res.status(200).json({ success: true, user });
+    res.status(200).json({ success: true, user , message: 'User fetched successfully.',userId:userId});
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch user.', error: error.message });
   }

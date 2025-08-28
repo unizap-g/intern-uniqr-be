@@ -8,7 +8,10 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "../utils/tokenUtils.js";
-import { generatePrefixedApiKey, validateApiKey } from "../utils/apiKeyUtils.js";
+import {
+  generatePrefixedApiKey,
+  validateApiKey,
+} from "../utils/apiKeyUtils.js";
 
 // --- UPDATED: Stricter validation function for exactly 10 digits ---
 const validateMobileNumber = (mobile) => {
@@ -20,8 +23,8 @@ const validateMobileNumber = (mobile) => {
 export const sendOtp = async (req, res) => {
   try {
     // Ensure response is always JSON
-    res.setHeader('Content-Type', 'application/json');
-    
+    res.setHeader("Content-Type", "application/json");
+
     // Only allow countryCode and mobileNumber in the request body
     const allowedFields = ["countryCode", "mobileNumber"];
     const extraFields = Object.keys(req.body).filter(
@@ -35,32 +38,28 @@ export const sendOtp = async (req, res) => {
     }
     const { countryCode, mobileNumber } = req.body;
     if (!countryCode || !mobileNumber) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Country code and mobile number are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Country code and mobile number are required.",
+      });
     }
 
     // --- STRICT: Country code must be exactly "91" ---
     if (String(countryCode).trim() !== "91") {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Country code must be exactly '91'. No other country codes are supported.",
-        });
+      return res.status(400).json({
+        success: false,
+        message:
+          "Country code must be exactly '91'. No other country codes are supported.",
+      });
     }
 
     // --- UPDATED: Enforce 10-digit rule at the API entry point ---
     if (!validateMobileNumber(mobileNumber)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Mobile number must be exactly 10 digits and cannot start with 0.",
-        });
+      return res.status(400).json({
+        success: false,
+        message:
+          "Mobile number must be exactly 10 digits and cannot start with 0.",
+      });
     }
 
     const fullMobileForSms = `${countryCode}${mobileNumber}`;
@@ -71,10 +70,10 @@ export const sendOtp = async (req, res) => {
       upperCaseAlphabets: false,
       specialChars: false,
     });
-    
+
     // Debug: Log OTP generation
     console.log(`🔢 Generated OTP for ${fullMobileForSms}: ${otp}`);
-    
+
     const smsSent = await sendOtpSms(fullMobileForSms, otp);
     if (!smsSent) {
       return res
@@ -87,9 +86,15 @@ export const sendOtp = async (req, res) => {
     await Otp.create({ mobileNumber: fullMobileForSms, otp: otp });
 
     // Clean up old OTP records for this number (including any wrong format)
-    await Otp.deleteMany({ 
+    await Otp.deleteMany({
       mobileNumber: { $in: [fullMobileForSms, `+${fullMobileForSms}`] },
-      _id: { $ne: (await Otp.findOne({ mobileNumber: fullMobileForSms }).sort({ createdAt: -1 }))?._id }
+      _id: {
+        $ne: (
+          await Otp.findOne({ mobileNumber: fullMobileForSms }).sort({
+            createdAt: -1,
+          })
+        )?._id,
+      },
     });
 
     // The query now uses the mobileNumber string directly.
@@ -103,21 +108,19 @@ export const sendOtp = async (req, res) => {
       userExists: !!user,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "An internal server error occurred.",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "An internal server error occurred.",
+      error: error.message,
+    });
   }
 };
 
 export const verifyOtpAndSignUp = async (req, res) => {
   try {
     // Ensure response is always JSON
-    res.setHeader('Content-Type', 'application/json');
-    
+    res.setHeader("Content-Type", "application/json");
+
     // Only allow countryCode, mobileNumber, and otp in the request body
     const allowedFields = ["countryCode", "mobileNumber", "otp"];
     const extraFields = Object.keys(req.body).filter(
@@ -131,45 +134,48 @@ export const verifyOtpAndSignUp = async (req, res) => {
     }
     const { countryCode, mobileNumber, otp } = req.body;
     if (!countryCode || !mobileNumber || !otp) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Country code, mobile number, and OTP are required.",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Country code, mobile number, and OTP are required.",
+      });
     }
 
     // --- STRICT: Country code must be exactly "91" ---
     if (String(countryCode).trim() !== "91") {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Country code must be exactly '91'. No other country codes are supported.",
-        });
+      return res.status(400).json({
+        success: false,
+        message:
+          "Country code must be exactly '91'. No other country codes are supported.",
+      });
     }
 
     // --- UPDATED: Enforce 10-digit rule at the API entry point ---
     if (!validateMobileNumber(mobileNumber)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Mobile number must be exactly 10 digits and cannot start with 0.",
-        });
+      return res.status(400).json({
+        success: false,
+        message:
+          "Mobile number must be exactly 10 digits and cannot start with 0.",
+      });
     }
 
     const fullMobileForSms = `${countryCode}${mobileNumber}`;
     console.log(`🔍 Looking for OTP with: ${fullMobileForSms}`);
-    
+
     const otpRecord = await Otp.findOne({
       mobileNumber: fullMobileForSms,
     }).sort({ createdAt: -1 });
-    
+
     // Debug: Show all recent OTPs
     const allOtps = await Otp.find({}).sort({ createdAt: -1 }).limit(5);
-    console.log(`📋 All recent OTPs:`, allOtps.map(otp => ({ mobile: otp.mobileNumber, otp: otp.otp, time: otp.createdAt })));
-    
+    console.log(
+      `📋 All recent OTPs:`,
+      allOtps.map((otp) => ({
+        mobile: otp.mobileNumber,
+        otp: otp.otp,
+        time: otp.createdAt,
+      }))
+    );
+
     if (!otpRecord) {
       return res
         .status(400)
@@ -182,12 +188,14 @@ export const verifyOtpAndSignUp = async (req, res) => {
     console.log(`💾 Stored: "${otpRecord.otp}" (${typeof otpRecord.otp})`);
     console.log(`📱 Record mobile: "${otpRecord.mobileNumber}"`);
     console.log(`📱 Search mobile: "${fullMobileForSms}"`);
-    
+
     if (String(otp).trim() !== String(otpRecord.otp).trim()) {
       console.log(`❌ OTP Mismatch!`);
-      return res.status(400).json({ success: false, message: "The OTP you entered is incorrect." });
+      return res
+        .status(400)
+        .json({ success: false, message: "The OTP you entered is incorrect." });
     }
-    
+
     console.log(`✅ OTP Match Success!`);
 
     // Find or Create user using the mobileNumber string.
@@ -197,25 +205,17 @@ export const verifyOtpAndSignUp = async (req, res) => {
     }
 
     // Generate access and refresh tokens
-    const accessToken = generateAccessToken(user._id); // Short-lived (e.g., 15m-1h)
-    const refreshToken = generateRefreshToken(user._id); // Long-lived (e.g., 7d)
-    
+    // const accessToken = generateAccessToken(user._id); // Short-lived (e.g., 15m-1h)
+    const refreshToken = generateRefreshToken(user._id); // Long-lived (e.g., 7d)1m
+
     // Generate UUID API Key for secure token exchange
     const uuidApiKey = generatePrefixedApiKey();
 
     // Store tokens and API key in Redis
     const redis = req.app.get("redis");
-    
+
     // Store refresh token (for session management)
-    await redis.set(`refreshToken:${user._id}`, refreshToken, { EX: 604800 }); // 7 days
-    
-    // Store UUID API Key mapped to JWT tokens
-    await redis.set(`apikey:${uuidApiKey}`, JSON.stringify({
-      accessToken,
-      refreshToken,
-      userId: user._id.toString(),
-      createdAt: new Date().toISOString()
-    }), { EX: 250 }); // 15 minutes expiry for API key
+    await redis.set(`refreshToken:${uuidApiKey}`, refreshToken, { EX: 604800 }); // 7 days
 
     // Remove all OTPs for this number after successful verification
     await Otp.deleteMany({ mobileNumber: fullMobileForSms });
@@ -223,82 +223,93 @@ export const verifyOtpAndSignUp = async (req, res) => {
     // Return only UUID API Key (NOT the actual JWT tokens)
     res.status(201).json({
       success: true,
-      message: "Authentication successful! Use the API key to get your access token.",
+      message:
+        "Authentication successful! Use the API key to get your access token.",
       uuidApiKey,
       userId: user._id,
-      expiresIn: 900 // API key expires in 15 minutes
+      expiresIn: 900, // API key expires in 15 minutes
     });
   } catch (error) {
-    res
-      .status(400)
-      .json({
-        success: false,
-        message: "Bad Request!.",
-        error: error.message,
-      });
+    res.status(400).json({
+      success: false,
+      message: "Bad Request!.",
+      error: error.message,
+    });
   }
 };
 
 export const exchangeApiKeyForTokens = async (req, res) => {
+  let { uuidApiKey, uId } = req.body;
+
   try {
-    const { uuidApiKey,uId } = req.body;
-    console.log(uId)
-    console.log(uuidApiKey)
-    if (!uuidApiKey) {
+    if (!uuidApiKey && !uId) {
       return res.status(400).json({
         success: false,
-        message: "UUID API key is required."
+        message: "UUID API key and User ID are required.",
       });
     }
 
-    // Validate API key format
     if (!validateApiKey(uuidApiKey)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid API key format."
+        message: "Invalid API key format.",
       });
     }
 
-    // Get tokens from Redis using API key
     const redis = req.app.get("redis");
-    const tokenData = await redis.get(`refreshToken:${uId}`);
-    console.log(tokenData)
+    const tokenData = await redis.get(`refreshToken:${uuidApiKey}`);
 
     if (!tokenData) {
       return res.status(401).json({
         success: false,
-        message: "Invalid or expired API key. Please login again."
+        message: "Invalid or expired API key. Please login again.",
       });
     }
-    console.log("just check")
 
-    // Parse stored token data
-    const { accessToken, refreshToken, userId } = jwt.decode(tokenData);
-    console.log("just check1", userId);
-    // Delete the API key after use (one-time use)
-    await redis.del(`apikey:${uuidApiKey}`);
+    try {
+      const decoded = jwt.verify(tokenData, process.env.REFRESH_TOKEN_SECRET);
 
-    // Return the actual JWT tokens
-    res.status(200).json({
-      success: true,
-      message: "Token exchange successful!",
-      accessToken,
-      refreshToken,
-      userId
-    });
+      return res.status(200).json({
+        success: true,
+        message: "Token exchange successful!",
+        uuidApiKey,
+        userId: uId,
+      });
+    } catch (error) {
+      if (error.name === "TokenExpiredError") {
+        const newUuidApiKey = generatePrefixedApiKey();
+        const newRefreshToken = generateRefreshToken(uId);
 
+        await redis.del(`refreshToken:${uuidApiKey}`);
+
+        await redis.set(`refreshToken:${newUuidApiKey}`, newRefreshToken, {
+          EX: 604800,
+        });
+
+        return res.status(200).json({
+          success: true,
+          message: "New token exchange successful!",
+          uuidApiKey: newUuidApiKey,
+          userId: uId,
+        });
+      }
+
+      return res.status(401).json({
+        success: false,
+        message: "Invalid refresh token.",
+      });
+    }
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Token exchange failed.",
-      error: error.message
+      error: error.message,
     });
   }
 };
 
 export const signOut = async (req, res) => {
   try {
-    // Validate that user is authenticated
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
@@ -306,39 +317,37 @@ export const signOut = async (req, res) => {
       });
     }
 
-    const userId = req.user.id; // From the authenticate middleware
+    const userId = req.user.id;
 
-    // Get Redis instance
     const redis = req.app.get("redis");
-    
+
     if (!redis) {
       return res.status(500).json({
         success: false,
         message: "Redis connection not available.",
       });
     }
-    
-    // Remove the refresh token from Redis to invalidate the session
+
     const redisKey = `refreshToken:${userId}`;
     const deletedCount = await redis.del(redisKey);
-    
-    console.log(`🔐 Sign out attempt for user ${userId}: Redis key ${redisKey}, deleted count: ${deletedCount}`);
-    
+
+    console.log(
+      ` Sign out attempt for user ${userId}: Redis key ${redisKey}, deleted count: ${deletedCount}`
+    );
+
     if (deletedCount === 0) {
-      // Session was already expired or invalid
       return res.status(200).json({
         success: true,
         message: "Sign out successful. Session was already expired.",
       });
     }
 
-    // Successful signout
     res.status(200).json({
       success: true,
       message: "Sign out successful. Session terminated securely.",
     });
   } catch (error) {
-    console.error(`❌ Sign out error for user ${req.user?.id}:`, error);
+    console.error(` Sign out error for user ${req.user?.id}:`, error);
     res.status(500).json({
       success: false,
       message: "An internal server error occurred during sign out.",

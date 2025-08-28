@@ -13,48 +13,49 @@ import { createRateLimiters } from './middleware/rateLimiter.js';
 const app = express();
 
 // Fixed CORS configuration
-app.use(cors({ 
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
+// app.use(cors({ 
+//   origin: function (origin, callback) {
+//     // Allow requests with no origin (mobile apps, curl, Postman)
+//     if (!origin) return callback(null, true);
     
-    // Allow all localhost origins and production frontend
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001', 
-      'http://localhost:5173',
-      'http://127.0.0.1:3000',
-      'https://intern-uniqr-fe.onrender.com',
-      process.env.CORS_URL
-    ].filter(Boolean);
+//     // Allow all localhost origins and production frontend
+//     const allowedOrigins = [
+//       'http://localhost:3000',
+//       'http://localhost:3001', 
+//       'http://localhost:5173',
+//       'http://127.0.0.1:3000',
+//       'https://intern-uniqr-fe.onrender.com',
+//       process.env.CORS_URL
+//     ].filter(Boolean);
     
-    // Allow any localhost in development
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return callback(null, true);
-    }
+//     // Allow any localhost in development
+//     if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+//       return callback(null, true);
+//     }
     
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
+//     if (allowedOrigins.includes(origin)) {
+//       return callback(null, true);
+//     }
     
-    // For debugging - allow all origins temporarily
-    console.log('🌐 CORS request from:', origin);
-    callback(null, true);
-  },
-  credentials: true,
-  allowedHeaders: [
-    'Origin',
-    'X-Requested-With', 
-    'Content-Type',
-    'Accept',
-    'Authorization',
-    'Cache-Control',
-    'Pragma'
-  ],
-  exposedHeaders: ['Authorization'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  optionsSuccessStatus: 200
-}));
+//     // For debugging - allow all origins temporarily
+//     console.log('🌐 CORS request from:', origin);
+//     callback(null, true);
+//   },
+//   credentials: true,
+//   allowedHeaders: [
+//     'Origin',
+//     'X-Requested-With', 
+//     'Content-Type',
+//     'Accept',
+//     'Authorization',
+//     'Cache-Control',
+//     'Pragma'
+//   ],
+//   exposedHeaders: ['Authorization'],
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+//   optionsSuccessStatus: 200
+// }));
+app.use(cors());
 app.use(express.json({ 
   verify: (req, res, buf, encoding) => {
     // Handle empty body for POST requests

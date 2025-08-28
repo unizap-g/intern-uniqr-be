@@ -1,60 +1,79 @@
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
+// import { generatePrefixedApiKey, generateRefreshToken, validateApiKey } from "../utils/auth.js";
+import { generatePrefixedApiKey,validateApiKey } from "../utils/apiKeyUtils.js";
+import { generateRefreshToken } from "../utils/tokenUtils.js";
 
-/**
- * Middleware to authenticate user using JWT access token.
- * Checks token validity and existence in Redis (for revocation/blacklist support).
- */
 export const authenticate = async (req, res, next) => {
+  const uuidApiKey = req.headers["x-api-key"];
+  const uId = req.headers["x-user-id"];
+
   try {
-    // Get Authorization header with multiple fallbacks
-    const authHeader = req.headers.authorization || 
-                      req.headers.Authorization ||
-                      req.get('Authorization') ||
-                      req.get('authorization');
-    
-    console.log('� Auth attempt - Header present:', !!authHeader);
-    
-    if (!authHeader) {
-      return res.status(401).json({ success: false, message: 'No token provided.' });
+
+    if (!uuidApiKey || !uId) {
+      return res.status(400).json({
+        success: false,
+        message: "API key and User ID are required.",
+      });
     }
-    
-    if (!authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ success: false, message: 'Invalid token format. Must be Bearer token.' });
+
+
+    if (!validateApiKey(uuidApiKey)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid API key format.",
+      });
     }
-    
-    const token = authHeader.split(' ')[1];
-    if (!token || token === 'undefined' || token === 'null') {
-      return res.status(401).json({ success: false, message: 'No token provided.' });
+
+
+    const redis = req.app.get("redis");
+
+
+    const tokenData = await redis.get(`refreshToken:${uuidApiKey}`);
+    if (!tokenData) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please login again.",
+      });
     }
-    
-    // Verify JWT
-    let payload;
+
     try {
-      payload = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    } catch (err) {
-      console.log('❌ JWT verification failed:', err.message);
-      return res.status(401).json({ success: false, message: 'Invalid or expired access token.' });
+
+      const decoded = jwt.verify(tokenData, process.env.REFRESH_TOKEN_SECRET);
+
+
+      req.user = { uId: uId, apiKey: uuidApiKey, decoded };
+
+      return next(); 
+
+    } catch (error) {
+      if (error.name === "TokenExpiredError") {
+
+        const newUuidApiKey = generatePrefixedApiKey();
+        const newRefreshToken = generateRefreshToken(uId);
+
+        await redis.multi()
+          .del(`refreshToken:${uuidApiKey}`)
+          .set(`refreshToken:${newUuidApiKey}`, newRefreshToken, { EX: 7 * 24 * 60 * 60 })
+          .exec();
+
+        req.user = { uId: uId, apiKey: newUuidApiKey };
+
+
+        res.setHeader("x-api-key", newUuidApiKey);
+
+        return next();
+      }
+
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized. Invalid refresh token.",
+      });
     }
-    
-    // Check if user session exists in Redis
-    const redis = req.app.get('redis');
-    if (!redis) {
-      return res.status(500).json({ success: false, message: 'Session service unavailable.' });
-    }
-    
-    const sessionKey = `refreshToken:${payload.id}`;
-    const sessionExists = await redis.exists(sessionKey);
-    
-    if (!sessionExists) {
-      return res.status(401).json({ success: false, message: 'Session expired. Please login again.' });
-    }
-    
-    req.user = { id: payload.id };
-    console.log('✅ Auth success for user:', payload.id);
-    next();
-    
   } catch (error) {
-    console.error('❌ Auth middleware error:', error);
-    res.status(500).json({ success: false, message: 'Authentication failed.', error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: "Authentication failed.",
+      error: error.message,
+    });
   }
 };
