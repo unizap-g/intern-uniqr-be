@@ -14,9 +14,10 @@ export const refreshAccessToken = async (req, res) => {
     
     let payload;
     try {
-      payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+      payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET,{ignoreExpiration:true});
+      console.log("hello",payload);
     } catch (err) {
-      return res.status(401).json({ success: false, message: 'Invalid or expired refresh token.' });
+      return res.status(401).json({ success: false, message: 'Invalid or expired refresh.',error: err.message });
     }
     
     // Check Redis for session validity
@@ -24,7 +25,7 @@ export const refreshAccessToken = async (req, res) => {
     const redisKey = `refreshToken:${payload.id}`;
     const storedRefreshToken = await redis.get(redisKey);
     if (!storedRefreshToken || storedRefreshToken !== refreshToken) {
-      return res.status(401).json({ success: false, message: 'Session expired or invalid. Please login again.' });
+      return res.status(402).json({ success: false, message: 'Session expired or invalid. Please login again.' });
     }
     
     // Check if user still exists before issuing new access token

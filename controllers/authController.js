@@ -2,6 +2,7 @@
 import otpGenerator from "otp-generator";
 import User from "../models/userModel.js";
 import Otp from "../models/otpModel.js";
+import jwt from "jsonwebtoken";
 import { sendOtpSms } from "../services/smsService.js";
 import {
   generateAccessToken,
@@ -240,8 +241,9 @@ export const verifyOtpAndSignUp = async (req, res) => {
 
 export const exchangeApiKeyForTokens = async (req, res) => {
   try {
-    const { uuidApiKey } = req.body;
-    
+    const { uuidApiKey,uId } = req.body;
+    console.log(uId)
+    console.log(uuidApiKey)
     if (!uuidApiKey) {
       return res.status(400).json({
         success: false,
@@ -259,21 +261,23 @@ export const exchangeApiKeyForTokens = async (req, res) => {
 
     // Get tokens from Redis using API key
     const redis = req.app.get("redis");
-    const tokenData = await redis.get(`apikey:${uuidApiKey}`);
-    
+    const tokenData = await redis.get(`refreshToken:${uId}`);
+    console.log(tokenData)
+
     if (!tokenData) {
       return res.status(401).json({
         success: false,
         message: "Invalid or expired API key. Please login again."
       });
     }
+    console.log("just check")
 
     // Parse stored token data
-    const { accessToken, refreshToken, userId } = JSON.parse(tokenData);
-    
+    const { accessToken, refreshToken, userId } = jwt.decode(tokenData);
+    console.log("just check1", userId);
     // Delete the API key after use (one-time use)
     await redis.del(`apikey:${uuidApiKey}`);
-    
+
     // Return the actual JWT tokens
     res.status(200).json({
       success: true,
