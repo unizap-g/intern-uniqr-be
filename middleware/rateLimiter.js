@@ -17,7 +17,7 @@ export function createRateLimiters(redisClient) {
       prefix: 'rl:otp:'
     }),
     windowMs: 15 * 60 * 1000,
-    max: 30, // Lowered for security: 3 OTPs per 15 min per number
+    max: 200, // Lowered for security: 3 OTPs per 15 min per number
     message: (req, res) => {
       const number = req.body && req.body.mobileNumber ? req.body.mobileNumber : 'this number';
       return { success: false, message: `The mobile number ${number} has exceeded the OTP request limit. Please try again after 15 minutes.` };
@@ -33,7 +33,7 @@ export function createRateLimiters(redisClient) {
       prefix: 'rl:general:'
     }),
     windowMs: 15 * 60 * 1000,
-    max: 30,
+    max: 200,
     message: { success: false, message: 'Too many requests from this IP, please try again later.' },
     standardHeaders: true,
     legacyHeaders: false
