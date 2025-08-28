@@ -20,7 +20,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "countryCode": { "type": "string", "example": "+91" },
+                  "countryCode": { "type": "string", "example": "91" },
                   "mobileNumber": { "type": "string", "example": "9876543210" }
                 },
                 "required": ["countryCode", "mobileNumber"]
@@ -46,7 +46,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "countryCode": { "type": "string", "example": "+91" },
+                  "countryCode": { "type": "string", "example": "91" },
                   "mobileNumber": { "type": "string", "example": "9876543210" },
                   "otp": { "type": "string", "example": "123456" }
                 },
@@ -59,6 +59,31 @@
           "201": { "description": "Authentication successful" },
           "400": { "description": "Validation error" },
           "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/auth/exchange-tokens": {
+      "post": {
+        "summary": "Exchange UUID API key for JWT tokens",
+        "tags": ["Auth"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "uuidApiKey": { "type": "string", "example": "bz_123e4567-e89b-12d3-a456-426614174000" }
+                },
+                "required": ["uuidApiKey"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Token exchange successful" },
+          "400": { "description": "Invalid API key" },
+          "401": { "description": "Expired or invalid API key" }
         }
       }
     },
@@ -83,6 +108,59 @@
         "responses": {
           "200": { "description": "New access token issued" },
           "400": { "description": "Invalid refresh token" }
+        }
+      }
+    },
+    "/auth/signout": {
+      "post": {
+        "summary": "Sign out user and invalidate session",
+        "description": "Signs out the authenticated user by invalidating their session in Redis. NO PARAMETERS REQUIRED - only Authorization header with Bearer token is needed.",
+        "tags": ["Auth"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [],
+        "responses": {
+          "200": { 
+            "description": "Sign out successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Sign out successful. Session terminated securely." }
+                  }
+                }
+              }
+            }
+          },
+          "401": { 
+            "description": "Unauthorized - Invalid or missing token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "message": { "type": "string", "example": "No token provided." }
+                  }
+                }
+              }
+            }
+          },
+          "500": { 
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "message": { "type": "string", "example": "An internal server error occurred during sign out." }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },

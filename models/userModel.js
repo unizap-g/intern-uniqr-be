@@ -3,18 +3,15 @@ import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
   countryCode: {
-    type: Number,
+    type: String,
     required: [true, 'Country code is required.'],
-    enum: ['91', '+1'],
+    enum: ['91', '1', '44', '86', '33', '49', '81', '61'],
     trim: true,
-
   },
-  // --- CRITICAL CHANGE: Stored as a String to enforce exact length ---
   mobileNumber: {
-    type: Number,
+    type: String,
     required: [true, 'Mobile number is required.'],
     trim: true,
-    // Validation: Ensures the string contains EXACTLY 10 digits (0-9).
     validate: {
       validator: function(v) {
         return /^\d{10}$/.test(v);

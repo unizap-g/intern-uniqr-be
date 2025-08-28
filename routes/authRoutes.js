@@ -1,17 +1,13 @@
 // routes/authRoutes.js
 
 import express from 'express';
-import { sendOtp, verifyOtpAndSignUp } from '../controllers/authController.js';
+import { sendOtp, verifyOtpAndSignUp, signOut, exchangeApiKeyForTokens } from '../controllers/authController.js';
+import { authenticate } from '../middleware/authMiddleware.js';
+import { refreshAccessToken } from '../controllers/tokenController.js';
 
-// Accept otpRateLimiter as a parameter
-export function createAuthRoutes(otpRateLimiter) {
+// Accept rate limiters as parameters
+export function createAuthRoutes(otpRateLimiter, generalRateLimiter) {
   const router = express.Router();
-  import('../middleware/authMiddleware.js').then(({ authenticate }) => {
-    // Example protected route
-    router.get('/protected', authenticate, (req, res) => {
-      res.status(200).json({ success: true, message: 'You are authenticated!', userId: req.user.id });
-    });
-  });
 
   // =================================================================
   // Authentication Routes
@@ -29,14 +25,44 @@ export function createAuthRoutes(otpRateLimiter) {
    * @route   POST /api/auth/verify-otp
    * @desc    Completes authentication by verifying the OTP and issuing tokens.
    * @access  Public
-   * @middleware generalRateLimiter - Protected by the global limiter in server.js.
    */
-  router.post('/verify-otp', verifyOtpAndSignUp);
+  router.post('/verify-otp', generalRateLimiter, verifyOtpAndSignUp);
 
+  /**
+   * @route   POST /api/auth/exchange-tokens
+   * @desc    Exchange UUID API key for actual JWT tokens.
+   * @access  Public
+   */
+  router.post('/exchange-tokens', generalRateLimiter, exchangeApiKeyForTokens);
 
-  // Refresh token endpoint
-  import('../controllers/tokenController.js').then(({ refreshAccessToken }) => {
-    router.post('/refresh-token', refreshAccessToken);
+  /**
+   * @route   POST /api/auth/refresh-token
+   * @desc    Refresh access token using refresh token.
+   * @access  Public
+   */
+  router.post('/refresh-token', refreshAccessToken);
+
+  /**
+   * @route   POST /api/auth/signout
+   * @desc    Signs out the user by invalidating their session and removing refresh token from Redis.
+   * @access  Private - Requires valid JWT access token
+   * @middleware authenticate - Validates the user's access token
+   */
+  router.post('/signout', (req, res, next) => {
+    // Ensure req.body exists for signout (no parameters needed)
+    if (!req.body) {
+      req.body = {};
+    }
+    next();
+  }, authenticate, signOut);
+
+  /**
+   * @route   GET /api/auth/protected
+   * @desc    Test protected route
+   * @access  Private
+   */
+  router.get('/protected', authenticate, (req, res) => {
+    res.status(200).json({ success: true, message: 'You are authenticated!', userId: req.user.id });
   });
 
   // Export the router for use in server.js

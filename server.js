@@ -11,12 +11,74 @@ import setupSwagger from './swagger.js';
 import { createRateLimiters } from './middleware/rateLimiter.js';
 
 const app = express();
-app.use(cors({ origin: process.env.CORS_URL }));
-app.use(express.json());
+
+// Fixed CORS configuration
+app.use(cors({ 
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    
+    // Allow all localhost origins and production frontend
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001', 
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'https://intern-uniqr-fe.onrender.com',
+      process.env.CORS_URL
+    ].filter(Boolean);
+    
+    // Allow any localhost in development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // For debugging - allow all origins temporarily
+    console.log('🌐 CORS request from:', origin);
+    callback(null, true);
+  },
+  credentials: true,
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With', 
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'Cache-Control',
+    'Pragma'
+  ],
+  exposedHeaders: ['Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  optionsSuccessStatus: 200
+}));
+app.use(express.json({ 
+  verify: (req, res, buf, encoding) => {
+    // Handle empty body for POST requests
+    if (buf.length === 0 && req.method === 'POST') {
+      req.rawBody = '{}';
+    }
+  }
+}));
+
+// Add JSON parsing error handler
+app.use((error, req, res, next) => {
+  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid JSON format. Please check your request body syntax.'
+    });
+  }
+  next(error);
+});
 
 const startServer = async () => {
+
   try {
-    // UPDATED to use the cleaner URI format
+    // Connect to Redis
     const redisClient = createClient({
       url: process.env.REDIS_URL
     });
@@ -32,10 +94,10 @@ const startServer = async () => {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ MongoDB Atlas Connected Successfully.');
 
-    // --- SETUP SWAGGER AND HEALTH CHECK ---
+    // Setup Swagger documentation
     setupSwagger(app);
 
-    // UPGRADED Health checker API (not rate-limited)
+    // Health check endpoint
     app.get('/api/health', async (req, res) => {
       const healthcheck = { status: 'OK', timestamp: new Date(), services: { mongodb: 'Disconnected', redis: 'Disconnected' }};
       try {
@@ -55,23 +117,37 @@ const startServer = async () => {
       }
     });
 
-    // --- APPLY MIDDLEWARE AND ROUTES ---
+    // Apply middleware and routes
+    app.use('/api/auth', createAuthRoutes(otpRateLimiter, generalRateLimiter));
+    app.use('/api/user', generalRateLimiter, userRoutes);
 
-    // Only apply OTP rate limiter to /api/auth endpoints (number-based)
-    app.use('/api/auth', createAuthRoutes(otpRateLimiter));
+    // 404 handler for undefined routes - Always return JSON
+    app.use((req, res, next) => {
+      res.status(404).json({
+        success: false,
+        message: `Route ${req.originalUrl} not found`
+      });
+    });
 
-    // User routes (all authenticated user endpoints)
-    app.use('/api/user', userRoutes);
+    // Global error handler - Always return JSON
+    app.use((error, req, res, next) => {
+      console.error('Global Error Handler:', error);
+      
+      // Ensure we always send JSON response
+      res.status(error.status || 500).json({
+        success: false,
+        message: error.message || 'Internal server error',
+        ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+      });
+    });
 
     const PORT = process.env.PORT || 3000;
-    // UPDATED to listen on all network interfaces
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);
       console.log(`📚 API Docs available at http://localhost:${PORT}/api/docs`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
-
     process.exit(1);
   }
 };
