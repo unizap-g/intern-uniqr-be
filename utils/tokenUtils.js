@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
  */
 export const generateAccessToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.ACCESS_TOKEN_SECRET, {
-    expiresIn: '15m', // Short lifespan (e.g., 15 minutes)
+    expiresIn: '1m', // Short lifespan (e.g., 1 minute)
   });
 };
 
@@ -19,6 +19,6 @@ export const generateAccessToken = (userId) => {
  */
 export const generateRefreshToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.REFRESH_TOKEN_SECRET, {
-    expiresIn: '30m', // Long lifespan (e.g., 1 minute)
+    expiresIn: '2m', // Long lifespan (e.g., 1 minute)
   });
 };
