@@ -310,6 +310,7 @@ export const exchangeApiKeyForTokens = async (req, res) => {
 
 export const signOut = async (req, res) => {
   try {
+    const userId = req.user.id;
     if (!req.user || !req.user.id) {
       return res.status(401).json({
         success: false,
@@ -317,7 +318,6 @@ export const signOut = async (req, res) => {
       });
     }
 
-    const userId = req.user.id;
 
     const redis = req.app.get("redis");
 
