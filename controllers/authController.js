@@ -227,7 +227,7 @@ export const verifyOtpAndSignUp = async (req, res) => {
         "Authentication successful! Use the API key to get your access token.",
       uuidApiKey,
       userId: user._id,
-      expiresIn: 900, // API key expires in 15 minutes
+      expiresIn: 60, // API key expires in 1 minute
     });
   } catch (error) {
     res.status(400).json({
@@ -248,17 +248,18 @@ export const exchangeApiKeyForTokens = async (req, res) => {
         message: "UUID API key and User ID are required.",
       });
     }
-
+console.log("before validating APikey Received uuidApiKey:", uuidApiKey);
     if (!validateApiKey(uuidApiKey)) {
+      console.log("not validating inside ")
       return res.status(400).json({
         success: false,
         message: "Invalid API key format.",
       });
     }
-
+console.log("after validating APikey Received uuidApiKey");
     const redis = req.app.get("redis");
     const tokenData = await redis.get(`refreshToken:${uuidApiKey}`);
-
+    console.log("mytoken", tokenData);
     if (!tokenData) {
       return res.status(401).json({
         success: false,
@@ -318,6 +319,7 @@ export const signOut = async (req, res) => {
       });
     }
 
+    
 
     const redis = req.app.get("redis");
 

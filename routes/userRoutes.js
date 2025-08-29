@@ -178,19 +178,21 @@ router.patch('/profile', authenticate, async (req, res) => {
 router.get('/userdata', authenticate, async (req, res) => {
   console.log("u are here means verified");
   const userId = req.user.id;
+  const uuidToken=req.user.apiKey;
   if (!userId) {
     return res.status(400).json({ success: false, message: 'User ID is required.' });
   }
   const isValid = mongoose.Types.ObjectId.isValid(userId);
   if(!isValid) {
     return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+    
   }
   try {
     const user = await User.findById(userId).select('-__v -createdAt -updatedAt');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
-    res.status(200).json({ success: true, user , message: 'User fetched successfully.',userId:userId});
+    res.status(200).json({ success: true, user , message: 'User fetched successfully.',userId:userId ,uuidToken:uuidToken});
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to fetch user.', error: error.message });
   }
