@@ -5,14 +5,13 @@ import { generateRefreshToken } from "../utils/tokenUtils.js";
 
 export const authenticate = async (req, res, next) => {
   const uuidApiKey = req.headers["x-api-key"];
-  const uId = req.headers["x-user-id"];
 
   try {
 
-    if (!uuidApiKey || !uId) {
+    if (!uuidApiKey) {
       return res.status(400).json({
         success: false,
-        message: "API key and User ID are required.",
+        message: "API key is required.",
       });
     }
 
@@ -35,13 +34,16 @@ export const authenticate = async (req, res, next) => {
         message: "Unauthorized. Please login again.",
       });
     }
+    const uId = jwt.decode(tokenData)?.id;
+    console.log("User ID:", uId);
 
     try {
 
       const decoded = jwt.verify(tokenData, process.env.REFRESH_TOKEN_SECRET);
 
 
-      req.user = { uId: uId, apiKey: uuidApiKey, decoded };
+      req.user = { id: uId, apiKey: uuidApiKey, decoded };
+
 
       return next(); 
 
@@ -56,7 +58,7 @@ export const authenticate = async (req, res, next) => {
           .set(`refreshToken:${newUuidApiKey}`, newRefreshToken, { EX: 7 * 24 * 60 * 60 })
           .exec();
 
-        req.user = { uId: uId, apiKey: newUuidApiKey };
+        req.user = { id: uId, apiKey: newUuidApiKey };
 
 
         res.setHeader("x-api-key", newUuidApiKey);

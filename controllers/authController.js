@@ -328,7 +328,7 @@ export const signOut = async (req, res) => {
       });
     }
 
-    const redisKey = `refreshToken:${userId}`;
+    const redisKey = `refreshToken:${req.user.apiKey}`;
     const deletedCount = await redis.del(redisKey);
 
     console.log(

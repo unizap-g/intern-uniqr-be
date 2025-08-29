@@ -177,7 +177,7 @@ router.patch('/profile', authenticate, async (req, res) => {
 
 router.get('/userdata', authenticate, async (req, res) => {
   console.log("u are here means verified");
-  const userId = req.user.uId;
+  const userId = req.user.id;
   if (!userId) {
     return res.status(400).json({ success: false, message: 'User ID is required.' });
   }
