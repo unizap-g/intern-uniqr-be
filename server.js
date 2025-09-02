@@ -6,9 +6,10 @@ import { createClient } from 'redis';
 import cors from 'cors';
 import { createAuthRoutes } from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-import { authenticate } from './middleware/authMiddleware.js';
 import setupSwagger from './swagger.js';
 import { createRateLimiters } from './middleware/rateLimiter.js';
+import qrRoutes from './routes/qrRoutes.js';
+
 
 const app = express();
 
@@ -55,7 +56,11 @@ const app = express();
 //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
 //   optionsSuccessStatus: 200
 // }));
-app.use(cors());
+app.use(cors(
+  {
+    origin: "*"
+  }
+));
 app.use(express.json({ 
   verify: (req, res, buf, encoding) => {
     // Handle empty body for POST requests
@@ -75,6 +80,10 @@ app.use((error, req, res, next) => {
   }
   next(error);
 });
+
+    // QR Code routes (authenticated endpoints)
+    app.use('/api/qr', qrRoutes);
+
 
 const startServer = async () => {
 
@@ -131,7 +140,7 @@ const startServer = async () => {
     });
 
     // Global error handler - Always return JSON
-    app.use((error, req, res, next) => {
+  app.use((error, req, res, next) => {
       console.error('Global Error Handler:', error);
       
       // Ensure we always send JSON response
@@ -142,8 +151,9 @@ const startServer = async () => {
       });
     });
 
+
     const PORT = process.env.PORT || 3000;
-    app.listen('3000', '0.0.0.0', () => {
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);
       console.log(`📚 API Docs available at http://localhost:${PORT}/api/docs`);
     });
@@ -152,6 +162,4 @@ const startServer = async () => {
     process.exit(1);
   }
 };
-
-
 startServer();

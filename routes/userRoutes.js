@@ -23,7 +23,7 @@ router.get('/profile', authenticate, async (req, res) => {
 // Update user profile - Enhanced version
 router.patch('/profile', authenticate, async (req, res) => {
   try {
-    const allowedFields = ['fullName', 'email', 'dateOfBirth', 'gender'];
+    const allowedFields = ['fullName', 'email', 'dateOfBirth', 'gender', 'firstName', 'lastName', 'isActive'];
     const updateData = {};
     const errors = [];
     
