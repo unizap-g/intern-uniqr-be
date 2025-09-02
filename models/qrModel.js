@@ -270,43 +270,35 @@ const qrCodeSchema = new mongoose.Schema({
 
   // Section 5: Shape (same for all QR types)
   shape: {
-    pattern: {
+    name: {
       type: String,
-      enum: ['square', 'rounded', 'circular', 'diamond'],
-      default: 'square'
+      enum: [
+        'Default',
+        'Circle',
+        'Cloud',
+        'Gift',
+        'Shopping Cart',
+        'Package',
+        'T-Shirt',
+        'House',
+        'Shopping Bag',
+        'Electronics',
+        'Present',
+        'Tubelight'
+      ],
+      default: 'Default'
     },
-    cornerRadius: {
+    type: {
+      type: String,
+      enum: ['free', 'paid'],
+      default: 'free'
+    },
+    pointsCost: {
       type: Number,
-      min: 0,
-      max: 50,
       default: 0
     },
-    size: {
-      type: Number,
-      min: 100,
-      max: 1000,
-      default: 300
-    },
-    errorCorrection: {
-      type: String,
-      enum: ['L', 'M', 'Q', 'H'], // Low, Medium, Quartile, High
-      default: 'M'
-    },
-    foregroundColor: {
-      type: String,
-      default: '#000000'
-    },
-    backgroundColor: {
-      type: String,
-      default: '#ffffff'
-    },
-    gradientEnabled: {
-      type: Boolean,
-      default: false
-    },
-    gradientColors: {
-      start: { type: String },
-      end: { type: String }
+    imageUrl: {
+      type: String
     }
   },
 
@@ -376,8 +368,8 @@ const qrCodeSchema = new mongoose.Schema({
   // User association
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
+    // required: true
   },
 
   // Generated QR data
@@ -515,4 +507,4 @@ qrCodeSchema.statics.getQRTypesByCategory = function() {
 
 // Export the model
 const QrModel = mongoose.model('QRCode', qrCodeSchema);
-module.exports = QrModel;
+export default QrModel;

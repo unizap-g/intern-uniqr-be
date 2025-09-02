@@ -6,7 +6,9 @@ import {
     getQrCodeById, 
     updateQrCode, 
     deleteQrCode, 
-    duplicateQrCode 
+    duplicateQrCode, 
+    createQR,
+    getAllQR
 } from '../controllers/qrCodeController.js';
 
 const router = express.Router();
@@ -17,6 +19,10 @@ const router = express.Router();
  * @access  Public (or can be made private by adding authenticate middleware)
  */
 router.get('/shapes', getShapes);
+
+//CHECKING CREATE ENDPOINT
+router.post('/create', createQR)
+router.post('/qr-list', getAllQR)
 
 /**
  * @route   GET /api/qr/qrcode/edit/:id

@@ -1,7 +1,7 @@
 // controllers/qrCodeController.js
 import { ObjectId } from 'mongodb';
 import { getQrCodesCollection } from '../config/database.js';
-
+import QrModel from '../models/qrModel.js';
 // GET /api/qr/shapes
 export const getShapes = (req, res) => {
     const shapes = [
@@ -20,6 +20,62 @@ export const getShapes = (req, res) => {
     ];
     res.status(200).json(shapes);
 };
+
+//GET 
+export const createQR = async (req, res) => {
+  try {
+    console.log("hello")
+    console.log(req.body);
+    const { qrType, qrName, basicInfo } = req.body;
+    // --- Call QR Engine (simulate QR creation) ---
+    console.log(qrType, qrName, basicInfo);
+    
+    const qrEngineUrl = `http://10.1.4.19:5001/generate`;
+    // Save into MongoDB
+    const qr = await QrModel.create({
+      qrType,
+      qrName,
+      basicInfo,
+      qrShow: {
+        title: qrName,
+        link: basicInfo?.website,
+        scans: 0,
+        status: 'active'
+      },
+      qrImageUrl: qrEngineUrl
+    });
+    res.status(201).json(qr);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// get qr list
+
+export const getAllQR = async (req, res) => {
+  try {
+    const qrs = await QrModel.find().sort({ createdAt: -1 });
+    const formatted = qrs.map(qr => ({
+      _id: qr._id,
+      qrType: qr.qrType,
+      title: qr.qrShow?.title || qr.qrName || "Untitled",
+      link: qr.qrShow?.link || qr.basicInfo?.website || '',
+      scans: qr.qrShow?.scans ?? qr.analytics?.totalScans ?? 0,
+      status: qr.qrShow?.status || qr.status || qr.qrState,
+      createdAt: qr.createdAt,
+      qrImageUrl: qr.qrImageUrl  // this is key for displaying the QR code
+    }));
+    res.json(formatted);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching QR codes', error });
+  }
+};
+
+
+
+
+
+
 
 // GET /api/qr/qrcode/edit/:id
 export const getQrCodeById = async (req, res) => {

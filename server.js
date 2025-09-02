@@ -12,7 +12,7 @@ import qrRoutes from './routes/qrRoutes.js';
 
 
 const app = express();
-
+app.use(express.json());
 // Fixed CORS configuration
 // app.use(cors({ 
 //   origin: function (origin, callback) {
@@ -61,14 +61,14 @@ app.use(cors(
     origin: "*"
   }
 ));
-app.use(express.json({ 
-  verify: (req, res, buf, encoding) => {
-    // Handle empty body for POST requests
-    if (buf.length === 0 && req.method === 'POST') {
-      req.rawBody = '{}';
-    }
-  }
-}));
+// app.use(express.json({ 
+//   verify: (req, res, buf, encoding) => {
+//     // Handle empty body for POST requests
+//     if (buf.length === 0 && req.method === 'POST') {
+//       req.rawBody = '{}';
+//     }
+//   }
+// }));
 
 // Add JSON parsing error handler
 app.use((error, req, res, next) => {
@@ -82,7 +82,7 @@ app.use((error, req, res, next) => {
 });
 
     // QR Code routes (authenticated endpoints)
-    app.use('/api/qr', qrRoutes);
+    // app.use('/api/qr', qrRoutes);
 
 
 const startServer = async () => {
@@ -128,9 +128,10 @@ const startServer = async () => {
     });
 
     // Apply middleware and routes
+    app.use('/api/qr', qrRoutes);
     app.use('/api/auth', createAuthRoutes(otpRateLimiter, generalRateLimiter));
     app.use('/api/user', generalRateLimiter, userRoutes);
-
+    
     // 404 handler for undefined routes - Always return JSON
     app.use((req, res, next) => {
       res.status(404).json({
