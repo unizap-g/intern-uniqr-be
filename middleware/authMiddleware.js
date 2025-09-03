@@ -11,7 +11,7 @@ export const authenticate = async (req, res, next) => {
     if (!uuidApiKey) {
       return res.status(400).json({
         success: false,
-        message: "API key is required.",
+        message: "uuid is required.",
       });
     }
 

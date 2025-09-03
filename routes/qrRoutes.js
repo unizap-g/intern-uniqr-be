@@ -8,7 +8,10 @@ import {
     deleteQrCode, 
     duplicateQrCode, 
     createQR,
-    getAllQR
+    getAllQR,
+    saveQr,
+    getLogo,
+    getShape
 } from '../controllers/qrCodeController.js';
 
 const router = express.Router();
@@ -21,35 +24,41 @@ const router = express.Router();
 router.get('/shapes', getShapes);
 
 //CHECKING CREATE ENDPOINT
-router.post('/create', createQR)
-router.post('/qr-list', getAllQR)
+router.post('/createQr',  createQR)
+router.post('/saveQr', saveQr)
+router.get('/qr-list', getAllQR)
 
 /**
  * @route   GET /api/qr/qrcode/edit/:id
  * @desc    Get QR code by ID for editing
  * @access  Private (requires authentication)
  */
-router.get('/qrcode/edit/:id', authenticate, getQrCodeById);
+router.get('/qrcode/edit/:id', getQrCodeById);
 
 /**
  * @route   PATCH /api/qr/qrcode/:id
  * @desc    Update QR code by ID
  * @access  Private (requires authentication)
  */
-router.patch('/qrcode/:id', authenticate, updateQrCode);
+router.patch('/qrcode/:id', updateQrCode);
 
 /**
  * @route   DELETE /api/qr/qrcode/:id
  * @desc    Delete QR code by ID
  * @access  Private (requires authentication)
  */
-router.delete('/qrcode/:id', authenticate, deleteQrCode);
+router.delete('/qrcode/:id', deleteQrCode);
 
 /**
  * @route   POST /api/qr/qrcode/:id/duplicate
  * @desc    Duplicate QR code by ID
  * @access  Private (requires authentication)
  */
-router.post('/qrcode/:id/duplicate', authenticate, duplicateQrCode);
+router.post('/qrcode/:id/duplicate', duplicateQrCode);
 
+
+// get logo
+router.get('/getlogo', getLogo);
+// get shape
+router.get('/getshape', getShape);
 export default router;
