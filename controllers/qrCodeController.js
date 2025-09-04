@@ -90,6 +90,7 @@ export const createQR = async (req, res) => {
     console.log("hello");
     console.log(req.body);
 
+    const userId = req.user?.id; // Get user ID from authentication middleware
     const {
       QRType,
       QRState,
@@ -102,7 +103,6 @@ export const createQR = async (req, res) => {
       Logo,
       Status,
       CreatedAt,
-      userId,
       UpdatedAt,
     } = req.body;
 
@@ -191,9 +191,8 @@ export const createQR = async (req, res) => {
 //POST save qr in user's DB
 export const saveQr = async (req, res) => {
   try {
-    // const userId = req.user?.id;
+    const userId = req.user?.id;
     const responseData = req.body;
-    console.log(responseData);
     console.log("saveQr request body:", responseData);
 
     const qr = await QrModel.create({
@@ -217,27 +216,18 @@ export const saveQr = async (req, res) => {
       },
       qrImageUrl: responseData.img,
       qrImageName: responseData.img,
-      userId: new mongoose.Types.ObjectId(responseData.userId),
+      userId: new mongoose.Types.ObjectId(userId),
     });
     console.log("qr table added");
 
-
-    //   const user = await User.UpdateOne(
-    //     { _id: responseData.userId },
-    //     {
-    //       $push: { allQr: { qrlist: qr._id } },
-    //     }
-    //   );
-    const user=await User.findByIdAndUpdate({_id:responseData.userId},{
-        $push: { allQr: { qrlist: qr._id } },
-    })
-      console.log(user)
-    res.status(200).json({
-        msg:"added",
-        user
-      })
-
-    res.status(201).json({ success: true, qrId: qr._id, qr });
+    // Store QR id in user's collection using userId from authenticate middleware
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $push: { allQr: { qrlist: qr._id } } },
+      { new: true }
+    );
+    console.log(user);
+    res.status(201).json({ success: true, qrId: qr._id, qr, user });
   } catch (error) {
     console.log(error);
     console.error("Error saving QR code:", error);
@@ -288,15 +278,15 @@ export const getAllQR = async (req, res) => {
 
 // GET /api/qr/qrcode/edit/:id
 export const getQrCodeById = async (req, res) => {
-  const { id } = req.params;
-    const {userId} = req.body;
-  console.log("id from getQrCode:", id);
+  const { QrId } = req.params;
+   const userId = req.user?.id;
+  console.log("id from getQrCode:", QrId);
 //   const userId = req.user?.id; // Get user ID from authentication middleware
 
 
 
   try {
-    const qrCode = await QrModel.findById({_id:id, userId:userId});
+    const qrCode = await QrModel.findById({_id:QrId, userId:userId});
 
     if(!qrCode) {
       return res.status(200).json({ message: "QR Code not found!" });
@@ -405,12 +395,13 @@ export const getQrCodeById = async (req, res) => {
 // };
 export const updateQrCode = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { userId, ...updatedData } = req.body;
+    const { QrId } = req.params;
+     const userId = req.user?.id;
+    const { ...updatedData } = req.body;
     if (!userId) {
       return res.status(400).json({ message: "userId is required" });
     }
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(QrId)) {
       return res.status(400).json({ message: "Invalid QR Code ID format." });
     }
     // Remove fields that should not be updated directly by the client
@@ -418,10 +409,11 @@ export const updateQrCode = async (req, res) => {
     delete updatedData.createdAt;
     // Only allow update if QR belongs to the user
     const qrCode = await QrModel.findOneAndUpdate(
-      { _id: id, userId: userId },
+      { _id: QrId, userId: userId },
       { ...updatedData, updatedAt: new Date() },
       { new: true, runValidators: true }
     );
+    console.log(qrCode);
     if (!qrCode) {
       return res.status(404).json({ message: "QR Code not found or you do not have permission to edit it." });
     }
@@ -435,21 +427,21 @@ export const updateQrCode = async (req, res) => {
 // DELETE /api/qr/qrcode/:id
 export const deleteQrCode = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { userId } = req.body;
+    const { QrId } = req.params;
+     const userId = req.user?.id;
     if (!userId) {
       return res.status(400).json({ message: "userId is required" });
     }
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(QrId)) {
       return res.status(400).json({ message: "Invalid QR Code ID format." });
     }
+    // Remove reference from user's allQr array
+    await User.findByIdAndUpdate(userId, { $pull: { allQr: { qrlist: QrId } } });
     // Delete QR code document
-    const result = await QrModel.deleteOne({ _id: id, userId: userId });
+    const result = await QrModel.deleteOne({ _id: QrId, userId: userId });
     if (result.deletedCount === 0) {
       return res.status(404).json({ message: "QR Code not found or you do not have permission to delete it." });
     }
-    // Remove reference from user's allQr array
-    await User.findByIdAndUpdate(userId, { $pull: { allQr: { qrlist: id } } });
     res.status(200).json({ success: true, message: "QR Code deleted successfully." });
   } catch (error) {
     res.status(500).json({ message: "An error occurred while deleting the QR code.", error });
@@ -528,15 +520,15 @@ export const deleteQrCode = async (req, res) => {
 
 export const duplicateQrCode = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { userId } = req.body;
+    const { QrId } = req.params;
+   const userId = req.user?.id;
     if (!userId) {
       return res.status(400).json({ message: "userId is required" });
     }
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(QrId)) {
       return res.status(400).json({ message: "Invalid QR Code ID format." });
     }
-    const originalQrCode = await QrModel.findOne({ _id: id, userId: userId });
+    const originalQrCode = await QrModel.findOne({ _id: QrId, userId: userId });
     if (!originalQrCode) {
       return res.status(404).json({ message: "Original QR Code not found or you do not have permission to duplicate it." });
     }

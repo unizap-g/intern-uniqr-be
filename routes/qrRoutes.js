@@ -26,37 +26,37 @@ const router = express.Router();
 
 
 //CHECKING CREATE ENDPOINT
-router.post('/createQr',  createQR)
-router.post('/saveQr', saveQr)
-router.get('/qr-list/:userId', getAllQR)
+router.post('/createQr', authenticate,  createQR)
+router.post('/saveQr', authenticate, saveQr)
+router.get('/qr-list/:userId',authenticate, getAllQR)
 
 /**
  * @route   GET /api/qr/qrcode/edit/:id
  * @desc    Get QR code by ID for editing
  * @access  Private (requires authentication)
  */
-router.get('/qrcode/edit/:id', getQrCodeById);
+router.get('/qrcode/edit/:QrId',authenticate, getQrCodeById);
 
 /**
  * @route   PATCH /api/qr/qrcode/:id
  * @desc    Update QR code by ID
  * @access  Private (requires authentication)
  */
-router.patch('/qrcode/:id', updateQrCode);
+router.patch('/qrcode/:QrId',authenticate, updateQrCode);
 
 /**
  * @route   DELETE /api/qr/qrcode/:id
  * @desc    Delete QR code by ID
  * @access  Private (requires authentication)
  */
-router.delete('/qrcode/:id', deleteQrCode);
+router.delete('/qrcode/:QrId',authenticate, deleteQrCode);
 
 /**
  * @route   POST /api/qr/qrcode/:id/duplicate
  * @desc    Duplicate QR code by ID
  * @access  Private (requires authentication)
  */
-router.post('/qrcode/:id/duplicate', duplicateQrCode);
+router.post('/qrcode/:QrId/duplicate',authenticate, duplicateQrCode);
 
 
 // get logo
