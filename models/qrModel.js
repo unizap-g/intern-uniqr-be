@@ -9,30 +9,30 @@ const qrCodeSchema = new mongoose.Schema(
       required: true,
       trim: true,
       maxlength: 100,
-      validate: {
-        validator: function (v) {
-          // Only allow names from a predefined list
-          const allowedNames = [
-            "MyFirstWebsite",
-            "MyBusinessCard",
-            "MyEvent",
-            "MyMenu",
-            "MyCatalogue",
-            "MyResume",
-            "MyApp",
-            "MyPDF",
-            "MyGallery",
-            "MyVideo",
-            "MySocialLinks",
-            "MyLeadForm",
-            "MyReview",
-            "MyLandingPage",
-            "MyListOfLinks",
-          ];
-          return allowedNames.includes(v);
-        },
-        message: (props) => `${props.value} is not an allowed QR name!`,
-      },
+      // validate: {
+      //   validator: function (v) {
+      //     // Only allow names from a predefined list
+      //     const allowedNames = [
+      //       "MyFirstWebsite",
+      //       "MyBusinessCard",
+      //       "MyEvent",
+      //       "MyMenu",
+      //       "MyCatalogue",
+      //       "MyResume",
+      //       "MyApp",
+      //       "MyPDF",
+      //       "MyGallery",
+      //       "MyVideo",
+      //       "MySocialLinks",
+      //       "MyLeadForm",
+      //       "MyReview",
+      //       "MyLandingPage",
+      //       "MyListOfLinks",
+      //     ];
+      //     return allowedNames.includes(v);
+      //   },
+      //   message: (props) => `${props.value} is not an allowed QR name!`,
+      // },
     },
 
     // QR Type and State
@@ -367,15 +367,14 @@ const qrCodeSchema = new mongoose.Schema(
         enum: [
           "Default",
           "Circle",
-          "Cloud",
-          "Gift",
+          "Hexagon",
           "Shopping Cart",
-          "Package",
+          "Gift",
+          "Message",
+          "Cloud",
           "T-Shirt",
-          "House",
+          "Truck",
           "Shopping Bag",
-          "Electronics",
-          "Present",
           "Tubelight",
         ],
         default: "Default",
@@ -526,6 +525,8 @@ qrCodeSchema.pre("save", function (next) {
 
   next();
 });
+
+
 
 // Method to increment scan count
 qrCodeSchema.methods.recordScan = function (scanData = {}) {

@@ -1,3 +1,16 @@
+import mongoose from "mongoose";
+import { ObjectId } from "mongodb";
+import { getQrCodesCollection } from "../config/database.js";
+import QrModel from "../models/qrModel.js";
+import axios from "axios";
+import User from "../models/userModel.js";
+import shape from "../models/shapeModel.js";
+import logo from "../models/logoModel.js";
+
+
+
+
+
 // DELETE QR by id
 export const deleteQrCodeById = async (req, res) => {
   try {
@@ -20,93 +33,56 @@ export const deleteQrCodeById = async (req, res) => {
     res.status(500).json({ message: "An error occurred while deleting the QR code." });
   }
 };
-// controllers/qrCodeController.js
-import mongoose from "mongoose";
-import { ObjectId } from "mongodb";
-import { getQrCodesCollection } from "../config/database.js";
-import QrModel from "../models/qrModel.js";
-import axios from "axios";
-import User from "../models/userModel.js";
-import shape from "../models/shapeModel.js";
-import logo from "../models/logoModel.js";
-// GET /api/qr/shapes
-export const getShapes = (req, res) => {
-  const shapes = [
-    {
-      name: "Default",
-      type: "free",
-      pointsCost: 0,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=Default",
-    },
-    {
-      name: "Circle",
-      type: "free",
-      pointsCost: 0,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=Circle",
-    },
-    {
-      name: "Cloud",
-      type: "free",
-      pointsCost: 0,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=Cloud",
-    },
-    {
-      name: "Gift",
-      type: "paid",
-      pointsCost: 10,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=Gift",
-    },
-    {
-      name: "Shopping Cart",
-      type: "paid",
-      pointsCost: 10,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=Cart",
-    },
-    {
-      name: "Package",
-      type: "paid",
-      pointsCost: 10,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=Package",
-    },
-    {
-      name: "T-Shirt",
-      type: "paid",
-      pointsCost: 10,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=T-Shirt",
-    },
-    {
-      name: "House",
-      type: "paid",
-      pointsCost: 10,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=House",
-    },
-    {
-      name: "Shopping Bag",
-      type: "paid",
-      pointsCost: 10,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=Bag",
-    },
-    {
-      name: "Electronics",
-      type: "paid",
-      pointsCost: 10,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=Gadget",
-    },
-    {
-      name: "Present",
-      type: "paid",
-      pointsCost: 10,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=Present",
-    },
-    {
-      name: "Tubelight",
-      type: "paid",
-      pointsCost: 10,
-      imageUrl: "https://placehold.co/100x100/eeeeee/31343C?text=Tubelight",
-    },
-  ];
-  res.status(200).json(shapes);
+
+
+export const uploadLogoCustom = async (req, res) => {
+  try {
+    // check multer file
+    console.log("File received:", req.file);
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // upload to cloudinary
+    const uploadedUrl = await uploadOnCloudinary(req.file.path);
+    if (!uploadedUrl) {
+      return res.status(500).json({ message: "Failed to upload to Cloudinary" });
+    }
+console.log("File received:", req.file);
+
+    // save in DB
+    const newLogo = await logo.create({
+      logoUrl: uploadedUrl,
+      image: req.file.originalname,
+    });
+
+    res.status(201).json({
+      message: "Custom logo uploaded successfully",
+      logo: newLogo,
+    });
+  } catch (error) {
+    console.error("Error uploading custom logo:", error);
+    res.status(500).json({ message: "Error uploading custom logo", error });
+  }
 };
+
+// get custom logos
+// controllers/logoController.js
+
+// ✅ Get all logos
+export const getCustomLogos = async (req, res) => {
+  try {
+    const logos = await logo.find().sort({ createdAt: -1 }); // latest first
+    res.status(200).json(logos);
+  } catch (error) {
+    console.error("Error fetching logos:", error);
+    res.status(500).json({ message: "Error fetching logos", error });
+  }
+};
+// controllers/qrCodeController.js
+
+// GET /api/qr/shapes
+
 
 //POST   createQr
 export const createQR = async (req, res) => {
@@ -293,7 +269,7 @@ export const getLogo = async (req, res) => {
 // get qr list
 export const getAllQR = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId } = req.params;
     if (!userId) {
       return res.status(400).json({ message: "userId is required" });
     }
@@ -592,7 +568,6 @@ export const duplicateQrCode = async (req, res) => {
 };
 
 export default {
-  getShapes,
   getQrCodeById,
   updateQrCode,
   deleteQrCode,

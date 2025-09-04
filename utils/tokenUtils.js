@@ -19,6 +19,6 @@ export const generateAccessToken = (userId) => {
  */
 export const generateRefreshToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.REFRESH_TOKEN_SECRET, {
-    expiresIn: '2m', // Long lifespan (e.g., 1 minute)
+    expiresIn: '2h', // Long lifespan (e.g., 1 minute)
   });
 };

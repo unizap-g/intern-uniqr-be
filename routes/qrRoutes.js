@@ -1,8 +1,8 @@
 // routes/qrRoutes.js
 import express from 'express';
-import { authenticate } from '../middleware/authMiddleware.js'                               
+import { authenticate } from '../middleware/authMiddleware.js'
+import upload from '../middleware/multer.js';                               
 import { 
-    getShapes,
     getQrCodeById, 
     updateQrCode, 
     deleteQrCode, 
@@ -11,7 +11,9 @@ import {
     getAllQR,
     saveQr,
     getLogo,
-    getShape
+    getShape,
+    uploadLogoCustom,
+    getCustomLogos
 } from '../controllers/qrCodeController.js';
 
 const router = express.Router();
@@ -21,12 +23,12 @@ const router = express.Router();
  * @desc    Get available QR code shapes
  * @access  Public (or can be made private by adding authenticate middleware)
  */
-router.get('/shapes', getShapes);
+
 
 //CHECKING CREATE ENDPOINT
 router.post('/createQr',  createQR)
 router.post('/saveQr', saveQr)
-router.get('/qr-list', getAllQR)
+router.get('/qr-list/:userId', getAllQR)
 
 /**
  * @route   GET /api/qr/qrcode/edit/:id
@@ -61,4 +63,7 @@ router.post('/qrcode/:id/duplicate', duplicateQrCode);
 router.get('/getlogo', getLogo);
 // get shape
 router.get('/getshape', getShape);
+
+router.post('/uploadcustomlogo', upload.single('logoImage'), uploadLogoCustom);
+router.get("/getcustomlogos", getCustomLogos);
 export default router;
