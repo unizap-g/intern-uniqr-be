@@ -238,168 +238,186 @@ const swaggerDocument = {
           }
         }
       },
-      patch: {
-        summary: "Update user profile",
-        description: "Update user profile information. Only specified fields will be updated. Email uniqueness is enforced.",
-        tags: ["User"],
-        security: [{ bearerAuth: [] }],
-        requestBody: {
-          required: false,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  fullName: { 
-                    type: "string", 
-                    example: "John Doe Updated",
-                    description: "Full name (minimum 2 characters)",
-                    minLength: 2
-                  },
-                  email: { 
-                    type: "string", 
-                    format: "email", 
-                    example: "updated@example.com",
-                    description: "Valid email address (must be unique)"
-                  },
-                  dateOfBirth: { 
-                    type: "string", 
-                    format: "date", 
-                    example: "1990-01-15",
-                    description: "Date of birth (user must be 13-120 years old)"
-                  },
-                  gender: { 
-                    type: "string", 
-                    enum: ["Male", "Female", "Other", "Prefer not to say"], 
-                    example: "Male",
-                    description: "Gender selection from allowed values"
+        patch: {
+          summary: "Update authenticated user's profile",
+          tags: ["User"],
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    email: {
+                      type: "string",
+                      format: "email",
+                      example: "john.doe@example.com"
+                    },
+                    dateOfBirth: {
+                      type: "string",
+                      example: "04-09-1990",
+                      description: "Date of birth in dd-mm-yyyy format. User must be 13-120 years old."
+                    },
+                    gender: {
+                      type: "string",
+                      enum: ["Male", "Female", "Other", "Prefer not to say"],
+                      example: "Male"
+                    },
+                    firstName: {
+                      type: "string",
+                      example: "John"
+                    },
+                    lastName: {
+                      type: "string",
+                      example: "Doe"
+                    },
+                    isActive: {
+                      type: "boolean",
+                      example: true
+                    }
                   }
-                },
-                additionalProperties: false,
-                example: {
-                  "fullName": "John Smith Updated",
-                  "email": "john.updated@example.com",
-                  "gender": "Male"
+                }
+              }
+            }
+          },
+          responses: {
+            200: {
+              description: "Profile updated successfully",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: {
+                        type: "boolean"
+                      },
+                      message: {
+                        type: "string"
+                      },
+                      user: {
+                        type: "object",
+                        properties: {
+                          email: {
+                            type: "string"
+                          },
+                          dateOfBirth: {
+                            type: "string"
+                          },
+                          gender: {
+                            type: "string"
+                          },
+                          firstName: {
+                            type: "string"
+                          },
+                          lastName: {
+                            type: "string"
+                          },
+                          isActive: {
+                            type: "boolean"
+                          }
+                        }
+                      },
+                      updatedFields: {
+                        type: "array",
+                        items: {
+                          type: "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            400: {
+              description: "Validation failed or no valid fields provided",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: {
+                        type: "boolean"
+                      },
+                      message: {
+                        type: "string"
+                      },
+                      errors: {
+                        type: "array",
+                        items: {
+                          type: "string"
+                        }
+                      },
+                      allowedFields: {
+                        type: "array",
+                        items: {
+                          type: "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            409: {
+              description: "Email already registered with another account",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: {
+                        type: "boolean"
+                      },
+                      message: {
+                        type: "string"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            404: {
+              description: "User not found",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: {
+                        type: "boolean"
+                      },
+                      message: {
+                        type: "string"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            500: {
+              description: "Failed to update profile",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: {
+                        type: "boolean"
+                      },
+                      message: {
+                        type: "string"
+                      },
+                      error: {
+                        type: "string"
+                      }
+                    }
+                  }
                 }
               }
             }
           }
         },
-        responses: {
-          200: {
-            description: "Profile updated successfully",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: true },
-                    message: { type: "string", example: "Profile updated successfully" },
-                    user: {
-                      type: "object",
-                      properties: {
-                        _id: { type: "string", example: "507f1f77bcf86cd799439011" },
-                        countryCode: { type: "string", example: "91" },
-                        mobileNumber: { type: "string", example: "9876543210" },
-                        fullName: { type: "string", example: "John Doe" },
-                        email: { type: "string", example: "john@example.com" },
-                        dateOfBirth: { type: "string", format: "date", example: "1990-01-15" },
-                        gender: { type: "string", example: "Male" }
-                      }
-                    },
-                    updatedFields: {
-                      type: "array",
-                      items: { type: "string" },
-                      example: ["fullName", "email"]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          400: {
-            description: "Validation error",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: false },
-                    message: { type: "string", example: "Validation failed" },
-                    errors: {
-                      type: "array",
-                      items: { type: "string" },
-                      example: ["Full name must be at least 2 characters long", "Please provide a valid email address"]
-                    },
-                    allowedFields: {
-                      type: "array",
-                      items: { type: "string" },
-                      example: ["fullName", "email", "dateOfBirth", "gender"]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          401: { 
-            description: "Unauthorized - Invalid or missing token",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: false },
-                    message: { type: "string", example: "No token provided." }
-                  }
-                }
-              }
-            }
-          },
-          404: {
-            description: "User not found",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: false },
-                    message: { type: "string", example: "User not found." }
-                  }
-                }
-              }
-            }
-          },
-          409: {
-            description: "Email already exists",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: false },
-                    message: { type: "string", example: "Email is already registered with another account" }
-                  }
-                }
-              }
-            }
-          },
-          500: {
-            description: "Internal server error",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: false },
-                    message: { type: "string", example: "Failed to update profile" },
-                    error: { type: "string", example: "Database connection error" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
     },
     "/health": {
       get: {

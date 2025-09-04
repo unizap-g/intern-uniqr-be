@@ -56,11 +56,19 @@ app.use(express.json());
 //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
 //   optionsSuccessStatus: 200
 // }));
-app.use(cors(
-  {
-    origin: "*"
-  }
-));
+// app.use(cors(
+//   {
+//     origin: "*"
+//   }
+// ));
+app.use(
+  cors({
+    origin: "*",
+    allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
+    exposedHeaders: ["x-api-key"],
+  })
+);
+
 // app.use(express.json({ 
 //   verify: (req, res, buf, encoding) => {
 //     // Handle empty body for POST requests

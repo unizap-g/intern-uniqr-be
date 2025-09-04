@@ -292,28 +292,21 @@ export const getLogo = async (req, res) => {
 
 // get qr list
 export const getAllQR = async (req, res) => {
-    // const userId = req.user?.id;
-    // console.log("getAllQR userId:", userId);
-    // if (!userId) {
-    //   return res
-    //     .status(401)
-    //     .json({ message: "Unauthorized: User not authenticated." });
-    // }
-    // Ensure userId is ObjectId if needed
-    const {userId} = req.body;
-    console.log(userId);
-    try{
-        const isvalid=mongoose.Types.ObjectId.isValid(userId);
-        if(!isvalid){
-            return res.status(400).json({message:"Invalid userId format"});
-        }
-        const user=await User.findById(userId).populate('allQr.qrlist');
-        res.status(200).json({allQr:user.allQr});
-
-    }catch(err){
-        res.status(500).json({message:"Server error",error:err.message});
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
     }
-    
+    // Populate allQr.qrlist to get full QR code documents
+    const user = await User.findById(userId).populate('allQr.qrlist');
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const qrList = user.allQr.map(q => q.qrlist);
+    res.status(200).json({ qrList });
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching QR codes", error: err });
+  }
 }
 
 
@@ -435,69 +428,55 @@ export const getQrCodeById = async (req, res) => {
 //   }
 // };
 export const updateQrCode = async (req, res) => {
+  try {
     const { id } = req.params;
-    const { userId, ...updatedData } = req.body; // Get user ID from request body
+    const { userId, ...updatedData } = req.body;
     if (!userId) {
-        return res.status(400).json({ message: "User ID is required in request body." });
+      return res.status(400).json({ message: "userId is required" });
     }
-    if (!ObjectId.isValid(id)) {
-        return res.status(400).json({ message: "Invalid QR Code ID format." });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid QR Code ID format." });
     }
     // Remove fields that should not be updated directly by the client
     delete updatedData._id;
     delete updatedData.createdAt;
-    try {
-        // Add timestamp to the update
-        updatedData.updatedAt = new Date();
-        const updatedQrCode = await QrCode.findOneAndUpdate(
-            { _id: id, userId: userId },
-            updatedData,
-            { new: true, runValidators: true }
-        );
-        if (!updatedQrCode) {
-            return res.status(404).json({ message: "QR Code not found or you do not have permission to edit it." });
-        }
-        res.status(200).json(updatedQrCode);
-    } catch (error) {
-        console.error("Error updating QR code:", error);
-        res.status(500).json({ message: "An error occurred while updating the QR code." });
+    // Only allow update if QR belongs to the user
+    const qrCode = await QrModel.findOneAndUpdate(
+      { _id: id, userId: userId },
+      { ...updatedData, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+    if (!qrCode) {
+      return res.status(404).json({ message: "QR Code not found or you do not have permission to edit it." });
     }
+    res.status(200).json(qrCode);
+  } catch (error) {
+    res.status(500).json({ message: "An error occurred while updating the QR code.", error });
+  }
 };
 
 
 // DELETE /api/qr/qrcode/:id
 export const deleteQrCode = async (req, res) => {
-  const qrCodesCollection = getQrCodesCollection();
-  const { id } = req.params;
-  const { userId } = req.body;
-
-  if (!userId) {
-    return res
-      .status(401)
-      .json({ message: "Unauthorized: User not authenticated." });
-  }
-  if (!ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "Invalid QR Code ID format." });
-  }
-
   try {
-    const query = { _id: new ObjectId(id), userId: userId };
-    const result = await qrCodesCollection.deleteOne(query);
-
-    if (result.deletedCount === 0) {
-      return res
-        .status(404)
-        .json({
-          message:
-            "QR Code not found or you do not have permission to delete it.",
-        });
+    const { id } = req.params;
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
     }
-    res.status(200).json({ message: "QR Code deleted successfully." });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid QR Code ID format." });
+    }
+    // Delete QR code document
+    const result = await QrModel.deleteOne({ _id: id, userId: userId });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "QR Code not found or you do not have permission to delete it." });
+    }
+    // Remove reference from user's allQr array
+    await User.findByIdAndUpdate(userId, { $pull: { allQr: { qrlist: id } } });
+    res.status(200).json({ success: true, message: "QR Code deleted successfully." });
   } catch (error) {
-    console.error("Error deleting QR code:", error);
-    res
-      .status(500)
-      .json({ message: "An error occurred while deleting the QR code." });
+    res.status(500).json({ message: "An error occurred while deleting the QR code.", error });
   }
 };
 
@@ -572,50 +551,44 @@ export const deleteQrCode = async (req, res) => {
 // };
 
 export const duplicateQrCode = async (req, res) => {
+  try {
     const { id } = req.params;
-    const { userId } = req.body; // Get user ID from request body
+    const { userId } = req.body;
     if (!userId) {
-        return res.status(400).json({ message: "User ID is required in request body." });
+      return res.status(400).json({ message: "userId is required" });
     }
-    if (!ObjectId.isValid(id)) {
-        return res.status(400).json({ message: "Invalid QR Code ID format." });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid QR Code ID format." });
     }
-    try {
-        const originalQrCode = await QrCode.findOne({ _id: id, userId: userId });
-        if (!originalQrCode) {
-            return res.status(404).json({ message: "Original QR Code not found or you do not have permission to duplicate it." });
-        }
-        // Generate new name with "Copy of" prefix
-        let newQrName;
-        const originalName = originalQrCode.qrName;
-        if (originalName.startsWith('Copy of ')) {
-            // If it already starts with "Copy of", add another "Copy of"
-            newQrName = `Copy of ${originalName}`;
-        } else {
-            // First copy, just add "Copy of" prefix
-            newQrName = `Copy of ${originalName}`;
-        }
-        // Check if this name already exists, if so, keep adding "Copy of"
-        let finalName = newQrName;
-        let nameExists = await QrCode.findOne({ userId: userId, qrName: finalName });
-        while (nameExists) {
-            finalName = `Copy of ${finalName}`;
-            nameExists = await QrCode.findOne({ userId: userId, qrName: finalName });
-        }
-        // Create new QR code data
-        const duplicatedData = originalQrCode.toObject();
-        delete duplicatedData._id;
-        duplicatedData.qrName = finalName;
-        duplicatedData.createdAt = new Date();
-        duplicatedData.updatedAt = new Date();
-        duplicatedData.scanCount = 0;
-        const newQrCode = new QrCode(duplicatedData);
-        const savedQrCode = await newQrCode.save();
-        res.status(201).json(savedQrCode);
-    } catch (error) {
-        console.error("Error duplicating QR code:", error);
-        res.status(500).json({ message: "An error occurred while duplicating the QR code." });
+    const originalQrCode = await QrModel.findOne({ _id: id, userId: userId });
+    if (!originalQrCode) {
+      return res.status(404).json({ message: "Original QR Code not found or you do not have permission to duplicate it." });
     }
+    // Generate new name with "Copy of" prefix
+    let newQrName = originalQrCode.qrName.startsWith('Copy of ')
+      ? `Copy of ${originalQrCode.qrName}`
+      : `Copy of ${originalQrCode.qrName}`;
+    // Ensure unique name
+    let finalName = newQrName;
+    let nameExists = await QrModel.findOne({ userId: userId, qrName: finalName });
+    while (nameExists) {
+      finalName = `Copy of ${finalName}`;
+      nameExists = await QrModel.findOne({ userId: userId, qrName: finalName });
+    }
+    // Create new QR code data
+    const duplicatedData = originalQrCode.toObject();
+    delete duplicatedData._id;
+    duplicatedData.qrName = finalName;
+    duplicatedData.createdAt = new Date();
+    duplicatedData.updatedAt = new Date();
+    duplicatedData.scanCount = 0;
+    const newQrCode = await QrModel.create(duplicatedData);
+    // Add reference to user's allQr array
+    await User.findByIdAndUpdate(userId, { $push: { allQr: { qrlist: newQrCode._id } } });
+    res.status(201).json(newQrCode);
+  } catch (error) {
+    res.status(500).json({ message: "An error occurred while duplicating the QR code.", error });
+  }
 };
 
 export default {

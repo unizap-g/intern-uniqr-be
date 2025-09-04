@@ -26,24 +26,14 @@ router.patch('/profile', authenticate, async (req, res) => {
     const allowedFields = [ 'email', 'dateOfBirth', 'gender', 'firstName', 'lastName', 'isActive'];
     const updateData = {};
     const errors = [];
-    
+    // Debug log incoming payload
+    console.log('PATCH /profile req.body:', req.body);
     // Validate and process each field
     Object.keys(req.body).forEach(key => {
       if (allowedFields.includes(key)) {
         const value = req.body[key];
-        
         // Field-specific validation
         switch(key) {
-          case 'fullName':
-            // Only allow alphabets and spaces, no numbers or special characters
-            const nameRegex = /^[a-zA-Z\s]+$/;
-            if (typeof value === 'string' && value.trim().length >= 2 && nameRegex.test(value.trim())) {
-              updateData[key] = value.trim();
-            } else {
-              errors.push('Full name must be at least 2 characters long and contain only alphabets and spaces');
-            }
-            break;
-            
           case 'email':
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (typeof value === 'string' && emailRegex.test(value)) {
@@ -52,7 +42,6 @@ router.patch('/profile', authenticate, async (req, res) => {
               errors.push('Please provide a valid email address');
             }
             break;
-            
           case 'dateOfBirth':
             const dobRegex = /^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-\d{4}$/;
             if (typeof value === 'string' && dobRegex.test(value)) {
@@ -61,7 +50,6 @@ router.patch('/profile', authenticate, async (req, res) => {
               const today = new Date();
               const minAge = new Date(today.getFullYear() - 13, today.getMonth(), today.getDate());
               const maxAge = new Date(today.getFullYear() - 120, today.getMonth(), today.getDate());
-              
               if (!isNaN(date.getTime()) && date <= minAge && date >= maxAge) {
                 updateData[key] = date;
               } else {
@@ -70,12 +58,17 @@ router.patch('/profile', authenticate, async (req, res) => {
             } else {
               errors.push('Date of birth must be in dd-mm-yyyy format');
             }
-            break;
+            break;
+          default:
+            // For other allowed fields, just assign
+            updateData[key] = value;
         }
       } else {
         errors.push(`Field '${key}' is not allowed for update`);
       }
     });
+    // Debug log updateData
+    console.log('PATCH /profile updateData:', updateData);
 
 
     if (errors.length > 0) {
