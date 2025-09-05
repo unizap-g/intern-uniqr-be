@@ -87,8 +87,7 @@ export const getCustomLogos = async (req, res) => {
 //POST   createQr
 export const createQR = async (req, res) => {
   try {
-    console.log("hello");
-    console.log(req.body);
+
 
     const userId = req.user?.id; // Get user ID from authentication middleware
     const {
@@ -105,7 +104,8 @@ export const createQR = async (req, res) => {
       CreatedAt,
       UpdatedAt,
     } = req.body;
-
+    
+    console.log(BasicInfo, "asdfhsd");
     // ENUMS from your model
     const qrTypeEnum = [
       "URL",
@@ -175,9 +175,7 @@ export const createQR = async (req, res) => {
     const qrEngineUrl = process.env.ENGINE_URL;
 
     const response = await axios.post(`${qrEngineUrl}`, payload);
-    console.log("Response of generate Qr: ", response);
-    // Save into MongoDB
-    // userId is set from req.user.id, which is derived from the uuid in the header by authMiddleware
+
 
     // console.log(':white_check_mark: QR code created successfully:', qr);
     res.status(200).json({
@@ -193,7 +191,7 @@ export const saveQr = async (req, res) => {
   try {
     const userId = req.user?.id;
     const responseData = req.body;
-    console.log("saveQr request body:", responseData);
+    console.log("saveQr request body    dsvfvfgbdgghngfvdfbvfgbfgbf  :", responseData);
 
     const qr = await QrModel.create({
       qrType: responseData.QRType,
@@ -201,6 +199,7 @@ export const saveQr = async (req, res) => {
       qrName: responseData.QRName,
       charge: responseData.Charge,
       basicInfo: responseData.BasicInfo,
+      // websiteUrl: responseData.websiteUrl,
       configuration: responseData.Configuration,
       appearance: responseData.Appearance,
       shape: responseData.Shape,
@@ -214,11 +213,11 @@ export const saveQr = async (req, res) => {
         scans: 0,
         status: responseData.Status,
       },
+
       qrImageUrl: responseData.img,
       qrImageName: responseData.img,
       userId: new mongoose.Types.ObjectId(userId),
     });
-    console.log("qr table added");
 
     // Store QR id in user's collection using userId from authenticate middleware
     const user = await User.findByIdAndUpdate(
@@ -240,6 +239,7 @@ export const saveQr = async (req, res) => {
 export const getShape = async (req, res) => {
   try {
     const shapes = await shape.find();
+    console.log(shapes, "shapes");
     res.status(200).json(shapes);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching shapes', error });
@@ -282,9 +282,6 @@ export const getQrCodeById = async (req, res) => {
    const userId = req.user?.id;
   console.log("id from getQrCode:", QrId);
 //   const userId = req.user?.id; // Get user ID from authentication middleware
-
-
-
   try {
     const qrCode = await QrModel.findById({_id:QrId, userId:userId});
 
@@ -448,6 +445,7 @@ export const deleteQrCode = async (req, res) => {
   }
 };
 
+
 // POST /api/qr/qrcode/:id/duplicate
 // export const duplicateQrCode = async (req, res) => {
 //   const qrCodesCollection = getQrCodesCollection();
@@ -517,7 +515,6 @@ export const deleteQrCode = async (req, res) => {
 //       .json({ message: "An error occurred while duplicating the QR code." });
 //   }
 // };
-
 export const duplicateQrCode = async (req, res) => {
   try {
     const { QrId } = req.params;

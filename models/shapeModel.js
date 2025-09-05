@@ -12,6 +12,9 @@ const newModelSchema = new mongoose.Schema({
     type:Number,
     required: true,
     default:0
+  },
+  shapeName: {
+    type: String,
   }
 },{timestamps:true});
 const shape = mongoose.model("shape", newModelSchema);

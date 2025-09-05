@@ -110,10 +110,10 @@ const qrCodeSchema = new mongoose.Schema(
         message: "{VALUE} is not a valid Charge type!",
       },
       default: "Free",
-    },
+    }, 
 
     // Section 2: Basic Information (flexible structure for different QR types)
-    basicInfo: {
+    basicInfo: [{
       // URL QR
       website: {
         type: String,
@@ -286,7 +286,7 @@ const qrCodeSchema = new mongoose.Schema(
       resumeUrl: { type: String },
       candidateName: { type: String },
       position: { type: String },
-    },
+    }],
 
     // Section 3: Configuration (only for dynamic QR)
     configuration: {
@@ -472,6 +472,10 @@ const qrCodeSchema = new mongoose.Schema(
       type: String, // URL to the generated QR image
     },
 
+    // websiteUrl: {
+    //   type: String, 
+    //   required: true,
+    // },
     // Dynamic QR specific fields
     shortUrl: {
       type: String,

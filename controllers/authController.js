@@ -20,6 +20,8 @@ const validateMobileNumber = (mobile) => {
   return mobileRegex.test(mobile);
 };
 
+
+
 export const sendOtp = async (req, res) => {
   try {
     // Ensure response is always JSON

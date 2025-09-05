@@ -13,6 +13,20 @@ export function createAuthRoutes(otpRateLimiter, generalRateLimiter) {
   // Authentication Routes
   // =================================================================
 
+  router.get('/check-auth', authenticate, (req, res) => {
+      if(req.user && req.user.id){
+        return res.status(200).json({
+          success: true,
+          message: "User is authenticated.",
+          userId: req.user.id
+        });
+      }
+      return res.status(401).json({
+        success: false,
+        message: "User is not authenticated."
+      });
+    });
+
   /**
    * @route   POST /api/auth/send-otp
    * @desc    Initiates the sign-up or sign-in process by sending an OTP.
@@ -64,6 +78,8 @@ export function createAuthRoutes(otpRateLimiter, generalRateLimiter) {
   router.get('/protected', authenticate, (req, res) => {
     res.status(200).json({ success: true, message: 'You are authenticated!', userId: req.user.id });
   });
+
+  
 
   // Export the router for use in server.js
   return router;
