@@ -393,7 +393,7 @@ const qrCodeSchema = new mongoose.Schema(
         type: String,
       },
     },
-
+    
     // Section 6: Logo (same for all QR types)
     logo: {
       enabled: {
