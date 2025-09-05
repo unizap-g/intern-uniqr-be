@@ -379,6 +379,7 @@ const qrCodeSchema = new mongoose.Schema(
         ],
         default: "Default",
       },
+      
       type: {
         type: String,
         enum: ["free", "paid"],
@@ -503,6 +504,8 @@ qrCodeSchema.virtual("scanRate").get(function () {
     ? (this.analytics.totalScans / daysSinceCreation).toFixed(2)
     : 0;
 });
+
+
 
 // Pre-save middleware to set qrState based on qrType
 qrCodeSchema.pre("save", function (next) {

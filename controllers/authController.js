@@ -286,7 +286,7 @@ console.log("after validating APikey Received uuidApiKey");
         await redis.del(`refreshToken:${uuidApiKey}`);
 
         await redis.set(`refreshToken:${newUuidApiKey}`, newRefreshToken, {
-          EX: 604800,
+          EX: 1000000,
         });
 
         return res.status(200).json({

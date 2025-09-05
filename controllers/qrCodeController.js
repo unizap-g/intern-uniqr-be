@@ -191,7 +191,7 @@ export const saveQr = async (req, res) => {
   try {
     const userId = req.user?.id;
     const responseData = req.body;
-    console.log("saveQr request body    dsvfvfgbdgghngfvdfbvfgbfgbf  :", responseData);
+    console.log("saveQr request body:", responseData);
 
     const qr = await QrModel.create({
       qrType: responseData.QRType,

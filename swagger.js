@@ -78,8 +78,7 @@ const swaggerDocument = {
                 type: "object",
                 properties: {
                   uuidApiKey: { type: "string", example: "bz_123e4567-e89b-12d3-a456-426614174000" }
-                },
-                required: ["uuidApiKey"]
+                }
               }
             }
           }
@@ -87,70 +86,7 @@ const swaggerDocument = {
         responses: {
           200: { description: "Token exchange successful" },
           400: { description: "Invalid API key" },
-          401: { description: "Expired or invalid API key" }
-        }
-      }
-    },
-    "/auth/refresh-token": {
-      post: {
-        summary: "Refresh access token",
-        tags: ["Auth"],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  refreshToken: { type: "string", example: "your-refresh-token" }
-                },
-                required: ["refreshToken"]
-              }
-            }
-          }
-        },
-        responses: {
-          200: { description: "New access token issued" },
-          400: { description: "Invalid refresh token" }
-        }
-      }
-    },
-    "/auth/signout": {
-      post: {
-        summary: "Sign out user and invalidate session",
-        description: "Signs out the authenticated user by invalidating their session in Redis. NO PARAMETERS REQUIRED - only Authorization header with Bearer token is needed.",
-        tags: ["Auth"],
-        security: [{ bearerAuth: [] }],
-        parameters: [],
-        responses: {
-          200: { 
-            description: "Sign out successful",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: true },
-                    message: { type: "string", example: "Sign out successful. Session terminated securely." }
-                  }
-                }
-              }
-            }
-          },
-          401: { 
-            description: "Unauthorized - Invalid or missing token",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    success: { type: "boolean", example: false },
-                    message: { type: "string", example: "No token provided." }
-                  }
-                }
-              }
-            }
-          },
+          401: { description: "Expired or invalid API key" },
           500: { 
             description: "Internal server error",
             content: {
@@ -165,6 +101,60 @@ const swaggerDocument = {
               }
             }
           }
+        }
+      }
+    },
+    "/api/qr/create": {
+      post: {
+        summary: "Create a new QR code",
+        tags: ["QR"],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  qrName: { type: "string", example: "My QR" },
+                  qrType: { type: "string", example: "URL" },
+                  qrState: { type: "string", example: "static" },
+                  charge: { type: "string", example: "Free" },
+                  shape: { type: "string", example: "64f7c2e1a1b2c3d4e5f6a7b8", description: "Shape ObjectId" },
+                  logo: { type: "string", example: "64f7c2e1a1b2c3d4e5f6a7b9", description: "Logo ObjectId" }
+                  // ...other fields...
+                },
+                required: ["qrName", "qrType", "charge", "shape", "logo"]
+              }
+            }
+          }
+        },
+        responses: {
+          201: {
+            description: "QR code created successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    success: { type: "boolean", example: true },
+                    qr: {
+                      type: "object",
+                      properties: {
+                        _id: { type: "string", example: "64f7c2e1a1b2c3d4e5f6a7c0" },
+                        qrName: { type: "string", example: "My QR" },
+                        shape: { type: "string", example: "64f7c2e1a1b2c3d4e5f6a7b8" },
+                        logo: { type: "string", example: "64f7c2e1a1b2c3d4e5f6a7b9" }
+                        // ...other fields...
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          400: { description: "Validation error" },
+          500: { description: "Internal server error" }
         }
       }
     },
